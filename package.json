@@ -1,0 +1,20 @@
+{
+  "name": "snc-tax-annexure-generator",
+  "version": "1.0.0",
+  "description": "Generates professional Annexure A document for SA-iLabs Holdings and SNC-TAX",
+  "main": "generate_annexure.js",
+  "scripts": {
+    "generate": "node generate_annexure.js"
+  },
+  "keywords": [
+    "sa-ilabs",
+    "snc-tax",
+    "annexure",
+    "docx"
+  ],
+  "author": "Christo Botha",
+  "license": "ISC",
+  "dependencies": {
+    "docx": "^8.5.0"
+  }
+}
