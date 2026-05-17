@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcryptjs from 'bcryptjs';
+import db from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
@@ -13,27 +14,21 @@ export const login = async (req, res, next) => {
       throw new AppError('Email and password required', 400);
     }
 
-    // TODO: Query user from database
-    // const user = await db.query('SELECT * FROM users WHERE email = $1', [email]);
-    // if (!user) throw new AppError('Invalid credentials', 401);
-    // const isPasswordValid = await bcryptjs.compare(password, user.password_hash);
-    // if (!isPasswordValid) throw new AppError('Invalid credentials', 401);
+    const user = await db.oneOrNone('SELECT * FROM users WHERE email = $1', [email]);
+    if (!user) throw new AppError('Invalid credentials', 401);
 
-    // Placeholder for development - validate against any password
-    const user = {
-      id: 1,
-      email,
-      role: 'manager',
-      company_id: 1,
-      first_name: 'Test',
-      last_name: 'User',
-    };
+    const isPasswordValid = await bcryptjs.compare(password, user.password_hash);
+    if (!isPasswordValid) throw new AppError('Invalid credentials', 401);
+
+    // Update last login
+    await db.none('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id]);
 
     const token = jwt.sign(
       {
         userId: user.id,
         email: user.email,
         role: user.role,
+        companyId: user.company_id,
       },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRY }
@@ -47,6 +42,8 @@ export const login = async (req, res, next) => {
         role: user.role,
         firstName: user.first_name,
         lastName: user.last_name,
+        companyName: user.company_name,
+        companyId: user.company_id,
       },
     });
   } catch (error) {
@@ -75,34 +72,29 @@ export const register = async (req, res, next) => {
       throw new AppError('Password must contain a number', 400);
     }
 
-    // Email validation
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       throw new AppError('Invalid email format', 400);
     }
 
-    // TODO: Check if user already exists
-    // const existingUser = await db.query('SELECT id FROM users WHERE email = $1', [email]);
-    // if (existingUser) throw new AppError('Email already registered', 409);
+    // Check if user already exists
+    const existingUser = await db.oneOrNone('SELECT id FROM users WHERE email = $1', [email]);
+    if (existingUser) throw new AppError('Email already registered', 409);
 
-    // TODO: Hash password
-    // const hashedPassword = await bcryptjs.hash(password, 10);
-
-    // TODO: Create user in database
-    // const user = await db.query(
-    //   'INSERT INTO users (email, password_hash, full_name, company_name, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, full_name, role',
-    //   [email, hashedPassword, fullName, companyName, 'user']
-    // );
-
-    // Placeholder for development - simulate user creation with hashed password
+    // Hash password
     const hashedPassword = await bcryptjs.hash(password, 10);
 
-    const user = {
-      id: 2,
-      email,
-      full_name: fullName,
-      company_name: companyName,
-      role: 'user',
-    };
+    // Split fullName into first/last
+    const nameParts = fullName.trim().split(/\s+/);
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ') || nameParts[0];
+
+    // Create user in database
+    const user = await db.one(
+      `INSERT INTO users (email, password_hash, first_name, last_name, company_name, role)
+       VALUES ($1, $2, $3, $4, $5, 'admin')
+       RETURNING id, email, first_name, last_name, company_name, role`,
+      [email, hashedPassword, firstName, lastName, companyName]
+    );
 
     const token = jwt.sign(
       {
@@ -119,7 +111,7 @@ export const register = async (req, res, next) => {
       user: {
         id: user.id,
         email: user.email,
-        fullName: user.full_name,
+        fullName: `${user.first_name} ${user.last_name}`,
         companyName: user.company_name,
         role: user.role,
       },
@@ -138,7 +130,11 @@ export const refreshToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
-    const newToken = jwt.sign(decoded, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+    const newToken = jwt.sign(
+      { userId: decoded.userId, email: decoded.email, role: decoded.role },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRY }
+    );
 
     res.json({ token: newToken });
   } catch (error) {
@@ -156,19 +152,22 @@ export const getCurrentUser = async (req, res, next) => {
       throw new AppError('Unauthorized', 401);
     }
 
-    // TODO: Fetch user details from database using userId
-    // const user = await db.query('SELECT id, email, full_name, role, company_id FROM users WHERE id = $1', [req.user.userId]);
+    const user = await db.oneOrNone(
+      'SELECT id, email, first_name, last_name, role, company_id, company_name FROM users WHERE id = $1',
+      [req.user.userId]
+    );
 
-    // Placeholder for development
-    const user = {
-      id: req.user.userId,
-      email: req.user.email,
-      role: req.user.role,
-      firstName: 'Test',
-      lastName: 'User',
-    };
+    if (!user) throw new AppError('User not found', 404);
 
-    res.json(user);
+    res.json({
+      id: user.id,
+      email: user.email,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      role: user.role,
+      companyId: user.company_id,
+      companyName: user.company_name,
+    });
   } catch (error) {
     next(error);
   }
