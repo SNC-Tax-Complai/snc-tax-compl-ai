@@ -1,22 +1,30 @@
 import { AppError } from '../middleware/errorHandler.js';
+import complianceService from '../services/complianceService.js';
+import documentService from '../services/documentService.js';
+import auditService from '../services/auditService.js';
 
 export const getDashboard = async (req, res, next) => {
   try {
-    const companyId = req.user.company_id;
+    const companyId = req.user.companyId || req.user.company_id;
 
-    // TODO: Query dashboard data from database
-    const dashboardData = {
-      complianceScore: 87,
-      complianceTrend: 7,
-      previousScore: 80,
-      pendingFilings: 3,
-      pendingTrend: -15,
-      dueThisMonth: 2,
-      actionRequired: true,
-      allUpToDate: 14,
-      upToDateTrend: 2,
-    };
+    if (!companyId) {
+      // Fallback for development when no company assigned
+      return res.json({
+        complianceScore: 87,
+        complianceTrend: 7,
+        previousScore: 80,
+        pendingFilings: 3,
+        pendingTrend: -15,
+        dueThisMonth: 2,
+        actionRequired: true,
+        allUpToDate: 14,
+        upToDateTrend: 2,
+        overdue: 0,
+        total: 17,
+      });
+    }
 
+    const dashboardData = await complianceService.getDashboardMetrics(companyId);
     res.json(dashboardData);
   } catch (error) {
     next(error);
@@ -26,21 +34,27 @@ export const getDashboard = async (req, res, next) => {
 export const getComplianceByModule = async (req, res, next) => {
   try {
     const { module } = req.params;
-    const companyId = req.user.company_id;
+    const companyId = req.user.companyId || req.user.company_id;
 
-    // TODO: Query compliance requirements and status for module
-    const complianceData = {
-      module,
-      requirements: [],
-      summary: {
-        total: 0,
-        completed: 0,
-        pending: 0,
-        overdue: 0,
-      },
-    };
+    const validModules = [
+      'cipc', 'sars', 'labour', 'ohs', 'popia',
+      'bbbee', 'fica', 'municipal', 'industry', 'tax_engine',
+    ];
 
-    res.json(complianceData);
+    if (!validModules.includes(module)) {
+      throw new AppError(`Invalid compliance module: ${module}`, 400);
+    }
+
+    if (!companyId) {
+      return res.json({
+        module,
+        requirements: [],
+        summary: { total: 0, completed: 0, pending: 0, overdue: 0, atRisk: 0 },
+      });
+    }
+
+    const data = await complianceService.getModuleRequirements(companyId, module);
+    res.json(data);
   } catch (error) {
     next(error);
   }
@@ -49,16 +63,17 @@ export const getComplianceByModule = async (req, res, next) => {
 export const getRequirement = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const companyId = req.user.companyId || req.user.company_id;
 
-    // TODO: Query requirement details from database
-    const requirement = {
-      id,
-      name: 'Compliance Requirement',
-      description: '',
-      dueDate: new Date(),
-      status: 'pending',
-      documents: [],
-    };
+    if (!companyId) {
+      throw new AppError('No company assigned to user', 400);
+    }
+
+    const requirement = await complianceService.getRequirementDetail(id, companyId);
+
+    if (!requirement) {
+      throw new AppError('Requirement not found', 404);
+    }
 
     res.json(requirement);
   } catch (error) {
@@ -69,10 +84,42 @@ export const getRequirement = async (req, res, next) => {
 export const updateComplianceStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, notes, completionDate } = req.body;
+    const userId = req.user.userId;
+    const companyId = req.user.companyId || req.user.company_id;
 
-    // TODO: Update compliance status in database
-    res.json({ message: 'Status updated successfully', id, status });
+    if (!status) {
+      throw new AppError('Status is required', 400);
+    }
+
+    const validStatuses = ['completed', 'pending', 'overdue', 'at_risk', 'not_applicable', 'in_progress'];
+    if (!validStatuses.includes(status)) {
+      throw new AppError(`Invalid status: ${status}. Must be one of: ${validStatuses.join(', ')}`, 400);
+    }
+
+    const updated = await complianceService.updateStatus(id, { status, notes, completionDate }, userId);
+
+    if (!updated) {
+      throw new AppError('Compliance status not found', 404);
+    }
+
+    // Audit log
+    await auditService.log({
+      userId,
+      companyId,
+      action: 'update',
+      entityType: 'compliance_status',
+      entityId: id,
+      newValue: { status, notes },
+      req,
+    });
+
+    // Recalculate score after status change
+    if (companyId) {
+      await complianceService.recalculateScore(companyId);
+    }
+
+    res.json({ message: 'Status updated successfully', data: updated });
   } catch (error) {
     next(error);
   }
@@ -80,10 +127,38 @@ export const updateComplianceStatus = async (req, res, next) => {
 
 export const uploadDocument = async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params; // compliance status ID
+    const companyId = req.user.companyId || req.user.company_id;
+    const userId = req.user.userId;
 
-    // TODO: Handle document upload
-    res.json({ message: 'Document uploaded successfully' });
+    if (!req.file) {
+      throw new AppError('No file uploaded', 400);
+    }
+
+    if (!companyId) {
+      throw new AppError('No company assigned to user', 400);
+    }
+
+    const document = await documentService.storeDocument(req.file, {
+      companyId,
+      statusId: id,
+      uploadedBy: userId,
+      category: req.body.category || 'evidence',
+      description: req.body.description,
+    });
+
+    // Audit log
+    await auditService.log({
+      userId,
+      companyId,
+      action: 'create',
+      entityType: 'document',
+      entityId: document.id,
+      newValue: { filename: document.original_name, statusId: id },
+      req,
+    });
+
+    res.status(201).json({ message: 'Document uploaded successfully', document });
   } catch (error) {
     next(error);
   }
@@ -91,14 +166,43 @@ export const uploadDocument = async (req, res, next) => {
 
 export const generateReport = async (req, res, next) => {
   try {
-    const companyId = req.user.company_id;
+    const companyId = req.user.companyId || req.user.company_id;
 
-    // TODO: Generate compliance report
+    if (!companyId) {
+      throw new AppError('No company assigned to user', 400);
+    }
+
+    // Get full compliance overview for report
+    const modules = ['cipc', 'sars', 'labour', 'ohs', 'popia', 'bbbee', 'fica', 'municipal', 'industry', 'tax_engine'];
+    const moduleData = {};
+
+    for (const module of modules) {
+      moduleData[module] = await complianceService.getModuleRequirements(companyId, module);
+    }
+
+    const dashboard = await complianceService.getDashboardMetrics(companyId);
+
     const report = {
       companyId,
-      generatedAt: new Date(),
-      data: {},
+      generatedAt: new Date().toISOString(),
+      overallScore: dashboard.complianceScore,
+      summary: {
+        total: dashboard.total,
+        completed: dashboard.allUpToDate,
+        pending: dashboard.pendingFilings,
+        overdue: dashboard.overdue,
+      },
+      modules: moduleData,
     };
+
+    // Audit log
+    await auditService.log({
+      userId: req.user.userId,
+      companyId,
+      action: 'view',
+      entityType: 'report',
+      req,
+    });
 
     res.json(report);
   } catch (error) {

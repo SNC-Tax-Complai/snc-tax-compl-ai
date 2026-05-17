@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useComplianceStore } from '../stores/complianceStore';
-import DashboardLayout from '../components/Dashboard/DashboardLayout';
 import ComplianceScoreCard from '../components/Dashboard/ComplianceScoreCard';
 import PendingFilingsCard from '../components/Dashboard/PendingFilingsCard';
 import DueThisMonthCard from '../components/Dashboard/DueThisMonthCard';
@@ -10,7 +9,7 @@ import NotificationsPanel from '../components/Notifications/NotificationsPanel';
 import './Dashboard.css';
 
 export default function Dashboard() {
-  const { fetchDashboardData, data, loading } = useComplianceStore();
+  const { fetchDashboardData, dashboardData: data, loading } = useComplianceStore();
   const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {

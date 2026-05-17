@@ -2,6 +2,7 @@ import app from './app.js';
 import { config } from 'dotenv';
 import { testConnection, closeConnection } from './config/database.js';
 import runMigrations from './utils/runMigrations.js';
+import schedulerService from './services/schedulerService.js';
 
 config();
 
@@ -39,12 +40,19 @@ const startServer = async () => {
       console.log(`\n✓ SNC-TAX Backend running on http://localhost:${PORT}`);
       console.log(`  Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`  Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
+
+      // Start background scheduler if database is connected
+      if (connected) {
+        schedulerService.start();
+      }
+
       console.log('\n========================================\n');
     });
 
     // Graceful shutdown
     process.on('SIGTERM', async () => {
       console.log('\nSIGTERM signal received: closing HTTP server');
+      schedulerService.stop();
       server.close(async () => {
         console.log('HTTP server closed');
         await closeConnection();
@@ -55,6 +63,7 @@ const startServer = async () => {
 
     process.on('SIGINT', async () => {
       console.log('\nSIGINT signal received: closing HTTP server');
+      schedulerService.stop();
       server.close(async () => {
         console.log('HTTP server closed');
         await closeConnection();
