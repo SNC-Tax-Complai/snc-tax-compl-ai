@@ -5,6 +5,7 @@ import complianceRoutes from './routes/compliance.js';
 import companyRoutes from './routes/companies.js';
 import notificationRoutes from './routes/notifications.js';
 import aiRoutes from './routes/ai.js';
+import sarsRoutes from './routes/sars.js';
 import adminRoutes from './routes/admin.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
@@ -29,6 +30,7 @@ app.use('/api/compliance', complianceRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/sars', sarsRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Health check endpoints
