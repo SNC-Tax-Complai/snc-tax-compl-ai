@@ -54,12 +54,18 @@ snc-tax-frontend/          React 18 + Vite SPA
 
 snc-tax-backend/           Express.js REST API
   src/
-    routes/                Auth, Compliance, Companies, Notifications, AI, Admin
+    routes/                Auth, Compliance, Companies, Notifications, AI, SARS, Admin
     controllers/           Request handling with validation
     services/              Business logic (compliance, notifications, documents, audit)
+    services/ai/           AI provider factory (Emma-i, OpenAI, Claude, Gemini)
+    services/integrations/ SARS eFiling, Email (SMTP), WhatsApp Business API
     middleware/             Auth (JWT), error handling, request logging
     config/                Database (pg-promise), Winston logger
     migrations/            PostgreSQL schema (001-009)
+  tests/
+    unit/                  Service and middleware unit tests (Jest)
+    integration/           API route integration tests (supertest)
+    fixtures/              Shared test data
 
 docker-compose.yml         Full-stack orchestration (Postgres + Backend + Frontend)
 scripts/                   deploy.sh, backup-db.sh
@@ -74,9 +80,13 @@ scripts/                   deploy.sh, backup-db.sh
 | Backend | Express.js, Node.js 20 |
 | Database | PostgreSQL 15 (pg-promise) |
 | Auth | JWT (jsonwebtoken), bcryptjs |
+| AI Engine | Multi-provider factory (Emma-i, OpenAI, Claude, Gemini) |
+| SARS Integration | eFiling API with mock fallback |
+| Notifications | Email (nodemailer SMTP), WhatsApp Business API |
 | File Upload | multer |
 | Logging | Winston |
 | Scheduling | node-cron |
+| Testing | Jest + supertest (backend), Vitest + Testing Library (frontend) |
 | Containerization | Docker, Docker Compose, nginx |
 | Process Management | PM2 (non-Docker) |
 
@@ -115,6 +125,14 @@ scripts/                   deploy.sh, backup-db.sh
 | GET | /api/notifications | JWT | User notifications |
 | PUT | /api/notifications/:id/read | JWT | Mark read |
 | POST | /api/ai/analyze-document | JWT | AI document analysis |
+| POST | /api/ai/generate-recommendations | JWT | AI compliance recommendations |
+| POST | /api/ai/classify | JWT | Classify requirement text |
+| GET | /api/ai/providers | JWT | List AI providers |
+| GET | /api/sars/validate/:taxRef | JWT | Validate tax reference |
+| GET | /api/sars/filing-status | JWT | Filing status lookup |
+| GET | /api/sars/tcs/:taxRef | JWT | Tax Compliance Status |
+| GET | /api/sars/outstanding/:taxRef | JWT | Outstanding returns |
+| GET | /api/sars/status | JWT | SARS integration status |
 | GET | /health | Public | Server health |
 
 ## Database Schema
@@ -177,6 +195,38 @@ pm2 startup
 - File upload type/size restrictions
 - CORS configured per environment
 
+## Testing
+
+```bash
+# Backend unit + integration tests
+cd snc-tax-backend
+npm test
+
+# With coverage report
+npm run test:coverage
+
+# Frontend component + store tests
+cd snc-tax-frontend
+npm test
+```
+
+### Test Coverage
+
+| Area | Tests | Type |
+|------|-------|------|
+| Auth middleware | JWT validation, role-based access | Unit |
+| Error handler | Status codes, AppError class, env-specific stack | Unit |
+| SARS service | Tax validation, filing status, TCS, outstanding returns | Unit |
+| Email service | SMTP config, overdue/reminder/summary templates | Unit |
+| WhatsApp service | Template messages, overdue/deadline alerts | Unit |
+| AI provider factory | Provider creation, caching, delegation, listing | Unit |
+| Auth routes | Login, register, /me endpoint, health check | Integration |
+| SARS routes | All 5 endpoints with auth + mock data | Integration |
+| AI routes | Provider listing, classification, recommendations | Integration |
+| Auth store | Login/logout/fetchUser/clearError state management | Frontend |
+| Compliance store | Dashboard/module/notification/report flows | Frontend |
+| ProtectedRoute | Auth guard redirect behavior | Frontend Component |
+
 ## Project Status
 
 - [x] Phase 2A: Project structure and configuration
@@ -184,9 +234,10 @@ pm2 startup
 - [x] Phase 2C: Authentication (login, register, protected routes)
 - [x] Phase 2D: Database schema, service layer, compliance modules
 - [x] Phase 3: Docker, logging, deployment scripts, production config
-- [ ] Phase 4: AI integration (Emma-i™ provider factory)
-- [ ] Phase 5: External API integration (SARS eFiling)
-- [ ] Phase 6: Email/WhatsApp notifications
+- [x] Phase 4: AI integration (Emma-i™ multi-provider factory)
+- [x] Phase 5: External API integration (SARS eFiling)
+- [x] Phase 6: Email/WhatsApp notification services
+- [x] Phase 7: Automated testing (Jest + Vitest)
 
 ## Legal
 

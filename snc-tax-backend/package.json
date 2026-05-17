@@ -1,6 +1,6 @@
 {
   "name": "snc-tax-backend",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "description": "SNC-TAX Compliance Platform - Express.js Backend",
   "type": "module",
   "main": "src/app.js",
