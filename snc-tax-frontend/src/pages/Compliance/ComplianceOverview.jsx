@@ -60,11 +60,11 @@ function getModuleIcon(moduleId) {
     labour: '\u{1F477}',
     ohs: '\u{26D1}',
     popia: '\u{1F512}',
-    bbbee: '\u{1F91D}',
+    bbee: '\u{1F91D}',
     fica: '\u{1F50D}',
     municipal: '\u{1F3D8}',
     industry: '\u{1F3ED}',
-    tax_engine: '\u{1F9EE}',
+    'tax-engine': '\u{1F9EE}',
   };
   return icons[moduleId] || '\u{1F4CB}';
 }
