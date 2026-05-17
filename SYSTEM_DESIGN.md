@@ -46,8 +46,8 @@
 | Solo developer (early stage) | Must automate heavily, keep complexity low |
 | Budget-limited | PostgreSQL over managed services, self-host where possible |
 | SA-based users | Latency to local hosting matters; POPIA data residency |
-| Base44 feature parity | Must replicate all existing features before adding new ones |
-| Annexure A legal agreement | Full IP ownership required — no vendor lock-in allowed |
+| Feature completeness | All compliance features implemented end-to-end |
+| Annexure A legal agreement | Full IP ownership required — standalone application |
 
 ---
 

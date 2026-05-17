@@ -1,7 +1,7 @@
 # SNC-TAX Compl-Ai™ SA
 
 South African SMME compliance management platform powered by Emma-i™ AI.  
-Fully standalone React/Express.js application — zero vendor lock-in.
+Fully standalone React/Express.js application — complete IP ownership.
 
 ## Quick Start
 
@@ -241,8 +241,7 @@ npm test
 
 ## Legal
 
-All code is original work created during vendor lock-in removal from Base44.  
-Full intellectual property ownership per Annexure A legal agreement.  
+All code is original work — full intellectual property ownership per Annexure A legal agreement.  
 Developed by SA-iLabs™ — Emma-i™ AI Engine.
 
 ---
