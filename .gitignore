@@ -22,3 +22,13 @@ coverage/
 .pytest_cache/
 __pycache__/
 *.egg-info/
+
+# Uploads and backups
+uploads/
+backups/
+
+# Docker volumes
+postgres_data/
+
+# OS files
+Thumbs.db

@@ -1,220 +1,199 @@
-# SNC-TAX Compliance Platform - Standalone Application
+# SNC-TAX Compl-Ai™ SA
 
-A comprehensive South African SMME compliance management and automation platform built with React and Express.js, extracted from Base44 vendor lock-in.
+South African SMME compliance management platform powered by Emma-i™ AI.  
+Fully standalone React/Express.js application — zero vendor lock-in.
 
-## Project Status
+## Quick Start
 
-**Phase 2: Code Extraction & Architecture Documentation** (In Progress)
+### Option A: Docker (Recommended)
 
-- ✅ Complete Base44 application structure analysis
-- ✅ Created Phase 2 Architecture Documentation
-- ✅ Git repository initialized
-- ✅ Frontend (React) project structure created
-- ✅ Backend (Express.js) project structure created
-- 🔄 Beginning Phase 2B: Component Recreation and API Implementation
-- 📅 Estimated Completion: Week 6 (2026-05-24)
+```bash
+# 1. Copy environment file and set your secrets
+cp .env.production .env
 
-## Directory Structure
+# 2. Start everything
+docker compose up -d --build
 
-```
-snc-tax-frontend/           # React frontend application
-├── src/
-│   ├── components/         # Reusable React components
-│   ├── pages/              # Page components
-│   ├── stores/             # Zustand state management
-│   ├── services/           # API service layer
-│   ├── hooks/              # Custom React hooks
-│   ├── context/            # React context providers
-│   ├── utils/              # Utility functions
-│   ├── styles/             # Global styles
-│   └── App.jsx             # Main app component
-├── public/                 # Static assets
-└── package.json
-
-snc-tax-backend/            # Express.js backend application
-├── src/
-│   ├── routes/             # API route definitions
-│   ├── controllers/        # Route controllers
-│   ├── models/             # Database models
-│   ├── middleware/         # Express middleware
-│   ├── services/           # Business logic services
-│   ├── config/             # Configuration files
-│   ├── jobs/               # Background jobs
-│   ├── app.js              # Express app setup
-│   └── server.js           # Server entry point
-├── tests/                  # Test files
-└── package.json
-
-PHASE_2_CODE_EXTRACTION_ARCHITECTURE.md  # Complete architecture documentation
-.env.example                             # Environment variables template
-.gitignore                               # Git ignore rules
+# 3. Open browser
+# Frontend: http://localhost
+# Backend:  http://localhost:5000/health
 ```
 
-## Features Implemented
+### Option B: Local Development
 
-### Frontend (React)
-- [x] Project structure and build configuration
-- [x] State management (Zustand) setup
-- [x] API service layer with axios
-- [x] Authentication store
-- [x] Compliance data store
-- [x] Routing setup
-- [x] Dashboard page skeleton
-- [ ] Dashboard components (in progress)
-- [ ] Compliance modules
-- [ ] Document vault
-- [ ] Admin panel
+```bash
+# 1. Install dependencies
+cd snc-tax-backend && npm install && cd ..
+cd snc-tax-frontend && npm install && cd ..
 
-### Backend (Express.js)
-- [x] Express server setup
-- [x] CORS and middleware configuration
-- [x] Authentication routes and controllers
-- [x] Compliance routes and controllers
-- [x] Error handling middleware
-- [x] JWT authentication middleware
-- [x] Role-based access control
-- [ ] Database integration (PostgreSQL)
-- [ ] SARS eFiling integration
-- [ ] AI provider factory pattern
-- [ ] Background jobs (compliance checking, notifications)
+# 2. Set up PostgreSQL (install if needed)
+createdb snc_tax_db
 
-## Getting Started
+# 3. Configure environment
+cp snc-tax-backend/.env.example snc-tax-backend/.env
+# Edit .env with your DATABASE_PASSWORD and JWT_SECRET
 
-### Prerequisites
-- Node.js 18+ and npm/yarn
-- PostgreSQL 12+
-- Git
+# 4. Start backend (migrations run automatically)
+cd snc-tax-backend && npm run dev
 
-### Setup
+# 5. Start frontend (new terminal)
+cd snc-tax-frontend && npm run dev
 
-1. **Clone and install dependencies**
-   ```bash
-   cd snc-tax-frontend
-   npm install
+# 6. Open http://localhost:5173
+```
 
-   cd ../snc-tax-backend
-   npm install
-   ```
+## Architecture
 
-2. **Configure environment**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
+```
+snc-tax-frontend/          React 18 + Vite SPA
+  src/
+    pages/                 Login, Register, Dashboard, Compliance, Vault, Admin
+    components/            Navigation, Dashboard cards, Notifications
+    stores/                Zustand (auth, compliance)
+    services/              Axios API layer
 
-3. **Start development servers**
-   ```bash
-   # Terminal 1: Frontend
-   cd snc-tax-frontend
-   npm run dev
+snc-tax-backend/           Express.js REST API
+  src/
+    routes/                Auth, Compliance, Companies, Notifications, AI, Admin
+    controllers/           Request handling with validation
+    services/              Business logic (compliance, notifications, documents, audit)
+    middleware/             Auth (JWT), error handling, request logging
+    config/                Database (pg-promise), Winston logger
+    migrations/            PostgreSQL schema (001-009)
 
-   # Terminal 2: Backend
-   cd snc-tax-backend
-   npm run dev
-   ```
+docker-compose.yml         Full-stack orchestration (Postgres + Backend + Frontend)
+scripts/                   deploy.sh, backup-db.sh
+```
 
-4. **Access the application**
-   - Frontend: http://localhost:5173
-   - Backend API: http://localhost:5000/api
-   - Health check: http://localhost:5000/health
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18, Vite, Zustand, Axios, react-hot-toast |
+| Styling | CSS Modules + Tailwind config |
+| Backend | Express.js, Node.js 20 |
+| Database | PostgreSQL 15 (pg-promise) |
+| Auth | JWT (jsonwebtoken), bcryptjs |
+| File Upload | multer |
+| Logging | Winston |
+| Scheduling | node-cron |
+| Containerization | Docker, Docker Compose, nginx |
+| Process Management | PM2 (non-Docker) |
+
+## Compliance Modules (10)
+
+| Module | Code | Key Requirements |
+|--------|------|-----------------|
+| CIPC | cipc | Annual Returns, Director Changes, MOI |
+| SARS Tax | sars | EMP201, ITR14, VAT201, IRP6, TCS |
+| Labour Law | labour | COIDA, UIF, EEA2, WSP, NMW |
+| OHS | ohs | H&S Policy, Risk Assessment, Fire Cert |
+| POPIA & PAIA | popia | Information Officer, PAIA Manual, Breach Plan |
+| B-BBEE | bbbee | EME/QSE/Generic Verification |
+| FICA | fica | RMCP, KYC/CDD, STR, CTR |
+| Municipal | municipal | Business License, Rates, Health Cert |
+| Industry | industry | FSCA, CIDB, NHBRC, HPCSA |
+| Tax Engine | tax_engine | SBC Election, Turnover Tax, CGT |
+
+**67 South African compliance requirements** seeded across all modules.
 
 ## API Endpoints
 
-### Authentication
-- `POST /api/auth/login` - User login
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/refresh` - Refresh JWT token
-- `GET /api/auth/me` - Get current user
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/auth/register | Public | Create account |
+| POST | /api/auth/login | Public | Sign in |
+| GET | /api/auth/me | JWT | Current user |
+| GET | /api/compliance/dashboard | JWT | Dashboard metrics |
+| GET | /api/compliance/report/generate | JWT | Full compliance report |
+| GET | /api/compliance/:module | JWT | Module requirements |
+| GET | /api/compliance/requirement/:id | JWT | Requirement details |
+| PUT | /api/compliance/:id | JWT | Update status |
+| POST | /api/compliance/:id/documents | JWT | Upload evidence |
+| GET | /api/companies | JWT | List companies |
+| POST | /api/companies | JWT+Admin | Create company |
+| GET | /api/notifications | JWT | User notifications |
+| PUT | /api/notifications/:id/read | JWT | Mark read |
+| POST | /api/ai/analyze-document | JWT | AI document analysis |
+| GET | /health | Public | Server health |
 
-### Compliance
-- `GET /api/compliance/dashboard` - Dashboard metrics
-- `GET /api/compliance/:module` - Module compliance status
-- `PUT /api/compliance/:id` - Update compliance status
+## Database Schema
 
-### Companies
-- `GET /api/companies` - List companies
-- `POST /api/companies` - Create company
-- `GET /api/companies/:id` - Get company details
-- `PUT /api/companies/:id` - Update company
+8 tables with automatic migrations:
 
-### Notifications
-- `GET /api/notifications` - Get notifications
-- `PUT /api/notifications/:id/read` - Mark as read
+```
+users → companies → compliance_requirements
+                  → compliance_statuses (tracks per-company status)
+                  → documents (uploaded evidence)
+                  → notifications (alerts and reminders)
+                  → compliance_scores (historical tracking)
+                  → audit_log (POPIA compliance trail)
+```
 
-### AI
-- `POST /api/ai/analyze-document` - Analyze document
-- `POST /api/ai/generate-recommendations` - Get recommendations
-- `GET /api/ai/providers` - List available AI providers
+## Deployment
 
-### Admin
-- `GET /api/admin/users` - List users
-- `POST /api/admin/users` - Create user
-- `PUT /api/admin/users/:id` - Update user
-- `DELETE /api/admin/users/:id` - Delete user
+```bash
+# Full deploy
+./scripts/deploy.sh up
 
-## Technology Stack
+# View logs
+./scripts/deploy.sh logs backend
 
-### Frontend
-- React 18
-- Vite
-- Zustand (State Management)
-- Axios (HTTP Client)
-- React Router
-- Tailwind CSS
-- Recharts (Data Visualization)
+# Check status
+./scripts/deploy.sh status
 
-### Backend
-- Express.js
-- Node.js
-- PostgreSQL
-- JWT (Authentication)
-- Joi (Validation)
-- Winston (Logging)
-- Node-cron (Scheduled Jobs)
+# Database backup
+./scripts/deploy.sh backup
 
-## Compliance Requirements
+# Stop everything
+./scripts/deploy.sh down
+```
 
-The platform addresses South African SMME compliance for:
-- CIPC (Companies and IP Registration)
-- SARS Tax (eFiling, VAT, Income Tax)
-- Labour Law (PAYE, SDL, UIF, COIDA)
-- OHS (Occupational Health & Safety)
-- POPIA & PAIA (Data Protection)
-- B-BBEE (Black Economic Empowerment)
-- FICA (Know-Your-Customer)
-- Municipal (Local Taxes & Licenses)
+### PM2 (without Docker)
 
-## AI Integration
+```bash
+cd snc-tax-backend
+pm2 start ecosystem.config.cjs --env production
+pm2 save
+pm2 startup
+```
 
-Multi-model AI provider support:
-- Emma-i™ (Primary)
-- OpenAI GPT-4
-- Anthropic Claude
-- Google Gemini
-- Meta AI
-- Self-hosted LLMs
+## Background Jobs
 
-Configurable through environment variables.
+| Schedule | Job | Timezone |
+|----------|-----|----------|
+| Daily 2:00 AM | Recalculate compliance scores | Africa/Johannesburg |
+| Daily 6:00 AM | Check for overdue items | Africa/Johannesburg |
+| Daily 8:00 AM | Generate reminder notifications | Africa/Johannesburg |
 
-## Documentation
+## Security
 
-- `PHASE_2_CODE_EXTRACTION_ARCHITECTURE.md` - Complete architecture documentation
-- `SNC_TAX_PRODUCTION_DEPLOYMENT_STRATEGY.md` - Deployment and implementation roadmap
+- JWT authentication with 24h expiry
+- bcryptjs password hashing (10 salt rounds)
+- Role-based access (Admin, Manager, Officer, Viewer)
+- Company-scoped data isolation
+- Full audit trail for POPIA compliance
+- Input validation (frontend + backend)
+- File upload type/size restrictions
+- CORS configured per environment
 
-## Legal & IP
+## Project Status
 
-- Code extracted per Annexure A legal agreement
-- Full intellectual property ownership: SNC-TAX
-- No vendor lock-in (independent deployment)
-- South African legal framework compliance (POPIA, CPA, Copyright Act)
+- [x] Phase 2A: Project structure and configuration
+- [x] Phase 2B: UI components and CSS styling
+- [x] Phase 2C: Authentication (login, register, protected routes)
+- [x] Phase 2D: Database schema, service layer, compliance modules
+- [x] Phase 3: Docker, logging, deployment scripts, production config
+- [ ] Phase 4: AI integration (Emma-i™ provider factory)
+- [ ] Phase 5: External API integration (SARS eFiling)
+- [ ] Phase 6: Email/WhatsApp notifications
 
-## Support
+## Legal
 
-For implementation questions and updates, refer to:
-- Phase 2 Architecture Documentation
-- Production Deployment Strategy
-- Feature parity checklist
+All code is original work created during vendor lock-in removal from Base44.  
+Full intellectual property ownership per Annexure A legal agreement.  
+Developed by SA-iLabs™ — Emma-i™ AI Engine.
 
-## License
+---
 
-Proprietary - SNC-TAX Compliance Platform
+**Version**: 2.0.0 | **License**: Proprietary | **Contact**: wernerbotha199@gmail.com

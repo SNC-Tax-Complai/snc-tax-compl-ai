@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  database:
+    image: postgres:15-alpine
+    container_name: snc-tax-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-snc_tax_db}
+      POSTGRES_USER: ${DATABASE_USER:-postgres}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-changeme}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build: ./snc-tax-backend
+    container_name: snc-tax-backend
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_HOST: database
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${DATABASE_NAME:-snc_tax_db}
+      DATABASE_USER: ${DATABASE_USER:-postgres}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-changeme}
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      LOG_LEVEL: info
+    ports:
+      - "5000:5000"
+    volumes:
+      - uploads_data:/app/uploads
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Frontend (Nginx)
+  frontend:
+    build:
+      context: ./snc-tax-frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api}
+    container_name: snc-tax-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+    driver: local
+  uploads_data:
+    driver: local
