@@ -1,0 +1,140 @@
+.welcome-banner {
+  background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+  border-radius: 16px;
+  padding: 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  border: 1px solid #bae6fd;
+  margin-bottom: 32px;
+}
+
+.banner-content {
+  flex: 1;
+}
+
+.banner-badge {
+  display: inline-block;
+  background: #0ea5e9;
+  color: white;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.banner-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 12px 0 8px 0;
+}
+
+.banner-title::after {
+  content: "";
+  background: linear-gradient(90deg, #0066cc, #00a8e8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.banner-subtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin: 8px 0;
+  font-weight: 500;
+}
+
+.banner-description {
+  font-size: 15px;
+  color: #475569;
+  margin-top: 12px;
+  line-height: 1.5;
+}
+
+.banner-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.notification-btn,
+.customize-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.notification-btn:hover,
+.customize-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.notification-icon,
+.customize-icon {
+  font-size: 16px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  background: #ef4444;
+  color: white;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .welcome-banner {
+    flex-direction: column;
+    padding: 24px;
+    align-items: flex-start;
+  }
+
+  .banner-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .banner-title {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  .welcome-banner {
+    padding: 16px;
+  }
+
+  .banner-title {
+    font-size: 20px;
+  }
+
+  .banner-subtitle,
+  .banner-description {
+    font-size: 13px;
+  }
+
+  .notification-btn,
+  .customize-btn {
+    flex: 1;
+    min-width: 140px;
+  }
+}
