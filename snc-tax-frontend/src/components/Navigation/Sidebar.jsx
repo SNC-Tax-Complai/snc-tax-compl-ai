@@ -2,10 +2,10 @@ import { Link } from 'react-router-dom';
 import './Sidebar.css';
 
 const NAVIGATION_ITEMS = [
-  { path: '/', label: 'Dashboard', icon: '📊' },
+  { path: '/', label: 'Dashboard', icon: '\u{1F4CA}' },
   {
     label: 'Compliance',
-    icon: '✓',
+    icon: '\u{2713}',
     submenu: [
       { path: '/compliance/cipc', label: 'CIPC' },
       { path: '/compliance/sars', label: 'SARS Tax' },
@@ -19,7 +19,16 @@ const NAVIGATION_ITEMS = [
       { path: '/compliance/tax-engine', label: 'Tax Engine' },
     ],
   },
-  { path: '/vault', label: 'Vault', icon: '🔒' },
+  { path: '/calendar', label: 'Calendar', icon: '\u{1F4C5}' },
+  { path: '/filing-workflows', label: 'Filing Workflows', icon: '\u{1F4DD}' },
+  { path: '/risk-analytics', label: 'Risk Analytics', icon: '\u{1F4C8}' },
+  { path: '/maturity-roadmap', label: 'Maturity Roadmap', icon: '\u{1F3AF}' },
+  { path: '/audit', label: 'Audit Report', icon: '\u{1F4CB}' },
+  { path: '/industry-intel', label: 'Industry Intel', icon: '\u{1F3ED}' },
+  { path: '/vault', label: 'Vault', icon: '\u{1F512}' },
+  { path: '/integrations', label: 'Integrations', icon: '\u{1F50C}' },
+  { path: '/whatsapp-alerts', label: 'WhatsApp Alerts', icon: '\u{1F4F1}' },
+  { path: '/emma-i', label: 'Emma-i\u{2122} Chat', icon: '\u{1F916}' },
 ];
 
 export default function Sidebar({ isOpen, onClose }) {

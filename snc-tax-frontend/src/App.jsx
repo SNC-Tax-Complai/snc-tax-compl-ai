@@ -9,6 +9,15 @@ import VaultPage from './pages/Vault';
 import LoginPage from './pages/Login';
 import RegisterPage from './pages/RegisterPage';
 import AdminPanel from './pages/Admin';
+import Calendar from './pages/Calendar';
+import EmmaChat from './pages/EmmaChat';
+import RiskAnalytics from './pages/RiskAnalytics';
+import MaturityRoadmap from './pages/MaturityRoadmap';
+import FilingWorkflows from './pages/FilingWorkflows';
+import AuditReport from './pages/AuditReport';
+import Integrations from './pages/Integrations';
+import WhatsAppAlerts from './pages/WhatsAppAlerts';
+import IndustryIntel from './pages/IndustryIntel';
 import { useAuthStore } from './stores/authStore';
 import './App.css';
 
@@ -42,6 +51,15 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/compliance/*" element={<CompliancePage />} />
           <Route path="/vault" element={<VaultPage />} />
+          <Route path="/calendar" element={<Calendar />} />
+          <Route path="/emma-i" element={<EmmaChat />} />
+          <Route path="/risk-analytics" element={<RiskAnalytics />} />
+          <Route path="/maturity-roadmap" element={<MaturityRoadmap />} />
+          <Route path="/filing-workflows" element={<FilingWorkflows />} />
+          <Route path="/audit" element={<AuditReport />} />
+          <Route path="/integrations" element={<Integrations />} />
+          <Route path="/whatsapp-alerts" element={<WhatsAppAlerts />} />
+          <Route path="/industry-intel" element={<IndustryIntel />} />
           <Route path="/admin/*" element={<AdminPanel />} />
         </Route>
 
