@@ -17,6 +17,6 @@ echo.
 echo ngrok Inspector: http://localhost:4040
 echo.
 
-ngrok http 5000
+C:\Users\yello\ngrok\ngrok.exe http 5000
 
 pause
