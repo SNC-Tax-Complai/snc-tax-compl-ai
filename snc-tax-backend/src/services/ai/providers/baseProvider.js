@@ -40,6 +40,10 @@ export default class BaseProvider {
     throw new Error(`${this.name}: classifyRequirement not implemented`);
   }
 
+  async chat(messages) {
+    throw new Error(`${this.name}: chat not implemented`);
+  }
+
   /**
    * Build the SA compliance system prompt
    */

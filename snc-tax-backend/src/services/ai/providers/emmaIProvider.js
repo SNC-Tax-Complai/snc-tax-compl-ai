@@ -145,6 +145,54 @@ export default class EmmaIProvider extends BaseProvider {
     return recommendations;
   }
 
+  async chat(messages) {
+    if (!this.isConfigured) {
+      return this.getMockChat(messages);
+    }
+
+    try {
+      const response = await axios.post(`${this.baseUrl}/chat`, {
+        system_prompt: this.getSystemPrompt(),
+        messages: messages.map(m => ({ role: m.role, content: m.content })),
+      }, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 60000,
+      });
+
+      return { provider: 'emma-i', status: 'success', message: response.data.message || response.data.content };
+    } catch (error) {
+      console.error('Emma-i™ chat error:', error.message);
+      return this.getMockChat(messages);
+    }
+  }
+
+  getMockChat(messages) {
+    const lastMsg = messages[messages.length - 1]?.content?.toLowerCase() || '';
+
+    const responses = {
+      emp201: 'EMP201 returns are due by the 7th of each month. You must reconcile PAYE, SDL, and UIF deductions for all employees. Submit via SARS eFiling. Late submissions attract a 10% penalty plus interest.',
+      vat: 'VAT201 returns are due by the 25th of the month following the tax period end. Ensure all input and output VAT is correctly captured. Register for VAT when turnover exceeds R1 million in 12 months.',
+      cipc: 'CIPC Annual Returns are due within 30 business days of your company anniversary date. The filing fee is based on your company turnover. Non-compliance can lead to deregistration.',
+      popia: 'POPIA requires all organisations processing personal information to register with the Information Regulator, appoint an Information Officer, and maintain a PAIA Section 51 Manual. Penalties can reach R10 million.',
+      bbbee: 'B-BBEE verification must be done annually through a SANAS-accredited agency. Your scorecard affects tender eligibility. EMEs (turnover under R10m) automatically qualify for Level 4, or Level 1 if 51%+ black-owned.',
+      coida: 'COIDA registration is mandatory for all employers. Submit your Return of Earnings (W.As.8) annually by 31 March. Assessments are based on your industry class and payroll.',
+      default: 'I\'m Emma-i™, your SA compliance assistant. I can help with SARS tax obligations, CIPC filings, labour law, POPIA data protection, B-BBEE verification, and more. What specific compliance area would you like to explore?',
+    };
+
+    let reply = responses.default;
+    for (const [key, value] of Object.entries(responses)) {
+      if (key !== 'default' && lastMsg.includes(key)) {
+        reply = value;
+        break;
+      }
+    }
+
+    return { provider: 'emma-i', status: 'mock', message: reply };
+  }
+
   getMockClassification(text) {
     const lowerText = text.toLowerCase();
     let module = 'sars';

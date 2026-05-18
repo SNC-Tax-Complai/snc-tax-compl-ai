@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useComplianceStore } from '../stores/complianceStore';
 import { useAuthStore } from '../stores/authStore';
+import { useAIInsightsStore } from '../stores/aiInsightsStore';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
@@ -125,8 +126,9 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState(OVERDUE_ALERTS);
   const [showChat, setShowChat] = useState(false);
   const [chatInput, setChatInput] = useState('');
+  const { insights, insightsLoading, fetchInsights } = useAIInsightsStore();
 
-  useEffect(() => { fetchDashboardData(); }, []);
+  useEffect(() => { fetchDashboardData(); fetchInsights(); }, []);
 
   if (loading) return <div className="dashboard-loading">Loading dashboard...</div>;
 
@@ -210,6 +212,38 @@ export default function Dashboard() {
           <div className="metric-sub">All up to date</div>
         </div>
       </div>
+
+      {/* AI Smart Insights */}
+      {insights.length > 0 && (
+        <div className="section-card" style={{ borderLeft: '4px solid #6366f1' }}>
+          <div className="section-header">
+            <h3 className="section-title">{'\u{1F9E0}'} Emma-i Smart Insights</h3>
+            <button className="link-btn" onClick={fetchInsights} disabled={insightsLoading}>
+              {insightsLoading ? 'Analyzing...' : 'Refresh'}
+            </button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {insights.map((insight, i) => (
+              <div key={i} style={{
+                padding: '12px 16px', borderRadius: '8px', fontSize: '0.88rem',
+                background: insight.type === 'warning' ? '#fef3c7' : insight.type === 'action' ? '#dbeafe' : insight.type === 'success' ? '#dcfce7' : '#f1f5f9',
+                borderLeft: `3px solid ${insight.type === 'warning' ? '#f59e0b' : insight.type === 'action' ? '#2563eb' : insight.type === 'success' ? '#22c55e' : '#94a3b8'}`,
+              }}>
+                <div style={{ fontWeight: 600, marginBottom: '4px' }}>
+                  {insight.type === 'warning' ? '⚠' : insight.type === 'action' ? '→' : insight.type === 'success' ? '✓' : 'ℹ'} {insight.title}
+                  {insight.module && <span style={{ fontSize: '0.72rem', marginLeft: '8px', padding: '1px 6px', borderRadius: '8px', background: 'rgba(0,0,0,0.08)', textTransform: 'uppercase' }}>{insight.module}</span>}
+                </div>
+                <div style={{ color: '#475569' }}>{insight.message}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {insightsLoading && !insights.length && (
+        <div className="section-card" style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+          {'\u{1F9E0}'} Emma-i is analyzing your compliance data...
+        </div>
+      )}
 
       {/* Score Trend Chart */}
       <div className="section-card">

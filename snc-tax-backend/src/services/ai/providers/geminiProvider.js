@@ -62,6 +62,40 @@ Return JSON array: [{priority, module, title, description, action, penalty}]`;
     }
   }
 
+  async chat(messages) {
+    if (!this.isConfigured) {
+      return { provider: 'gemini', status: 'unconfigured', message: 'Set GOOGLE_AI_API_KEY in backend .env to enable AI chat' };
+    }
+
+    try {
+      const contents = [
+        { role: 'user', parts: [{ text: this.getSystemPrompt() }] },
+        { role: 'model', parts: [{ text: 'Understood. I am Emma-i™, ready to assist with South African SMME compliance.' }] },
+        ...messages.map(m => ({
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: m.content }],
+        })),
+      ];
+
+      const response = await axios.post(
+        `${this.baseUrl}/models/${this.model}:generateContent?key=${this.apiKey}`,
+        {
+          contents,
+          generationConfig: { temperature: 0.5, maxOutputTokens: 1500 },
+        },
+        { timeout: 60000 }
+      );
+
+      return {
+        provider: 'gemini',
+        status: 'success',
+        message: response.data.candidates[0].content.parts[0].text,
+      };
+    } catch (error) {
+      return { provider: 'gemini', status: 'error', message: error.response?.data?.error?.message || error.message };
+    }
+  }
+
   async classifyRequirement(text) {
     if (!this.isConfigured) {
       return { provider: 'gemini', status: 'unconfigured' };

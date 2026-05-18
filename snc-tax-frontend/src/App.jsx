@@ -18,6 +18,7 @@ import AuditReport from './pages/AuditReport';
 import Integrations from './pages/Integrations';
 import WhatsAppAlerts from './pages/WhatsAppAlerts';
 import IndustryIntel from './pages/IndustryIntel';
+import Settings from './pages/Settings';
 import { useAuthStore } from './stores/authStore';
 import './App.css';
 
@@ -60,6 +61,7 @@ function App() {
           <Route path="/integrations" element={<Integrations />} />
           <Route path="/whatsapp-alerts" element={<WhatsAppAlerts />} />
           <Route path="/industry-intel" element={<IndustryIntel />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="/admin/*" element={<AdminPanel />} />
         </Route>
 

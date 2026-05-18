@@ -74,6 +74,36 @@ Return JSON array with: priority, module, title, description, action, penalty`;
     }
   }
 
+  async chat(messages) {
+    if (!this.isConfigured) {
+      return { provider: 'claude', status: 'unconfigured', message: 'Set ANTHROPIC_API_KEY in backend .env to enable AI chat' };
+    }
+
+    try {
+      const response = await axios.post(`${this.baseUrl}/messages`, {
+        model: this.model,
+        max_tokens: 1500,
+        system: this.getSystemPrompt(),
+        messages: messages.map(m => ({ role: m.role, content: m.content })),
+      }, {
+        headers: {
+          'x-api-key': this.apiKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json',
+        },
+        timeout: 60000,
+      });
+
+      return {
+        provider: 'claude',
+        status: 'success',
+        message: response.data.content[0].text,
+      };
+    } catch (error) {
+      return { provider: 'claude', status: 'error', message: error.response?.data?.error?.message || error.message };
+    }
+  }
+
   async classifyRequirement(text) {
     if (!this.isConfigured) {
       return { provider: 'claude', status: 'unconfigured' };

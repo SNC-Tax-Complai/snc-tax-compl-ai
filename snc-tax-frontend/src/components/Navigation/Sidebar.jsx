@@ -29,6 +29,7 @@ const NAVIGATION_ITEMS = [
   { path: '/integrations', label: 'Integrations', icon: '\u{1F50C}' },
   { path: '/whatsapp-alerts', label: 'WhatsApp Alerts', icon: '\u{1F4F1}' },
   { path: '/emma-i', label: 'Emma-i\u{2122} Chat', icon: '\u{1F916}' },
+  { path: '/settings', label: 'Settings', icon: '\u{2699}' },
 ];
 
 export default function Sidebar({ isOpen, onClose }) {

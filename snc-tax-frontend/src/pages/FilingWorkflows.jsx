@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAIInsightsStore } from '../stores/aiInsightsStore';
 import './PageStyles.css';
 
 const WORKFLOWS = [
@@ -80,8 +81,15 @@ const STATUS_COLORS = { overdue: '#e74c3c', upcoming: '#f39c12', future: '#3498d
 export default function FilingWorkflows() {
   const [expandedId, setExpandedId] = useState('emp201');
   const [filter, setFilter] = useState('all');
+  const { filingGuidance, filingLoading, fetchFilingGuidance } = useAIInsightsStore();
+  const [guidanceType, setGuidanceType] = useState(null);
 
   const filtered = filter === 'all' ? WORKFLOWS : WORKFLOWS.filter(w => w.status === filter);
+
+  const handleAskEmma = (filingType) => {
+    setGuidanceType(filingType);
+    fetchFilingGuidance(filingType);
+  };
 
   return (
     <div className="page-container">
@@ -89,6 +97,37 @@ export default function FilingWorkflows() {
         <h1>{'\u{1F4DD}'} Filing Workflows</h1>
         <p>Step-by-step guided workflows for all South African compliance filings</p>
       </div>
+
+      {/* AI Filing Guidance Panel */}
+      {(filingGuidance || filingLoading) && (
+        <div className="section-card" style={{ borderLeft: '4px solid #6366f1', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <h3 style={{ margin: 0 }}>{'\u{1F9E0}'} Emma-i Filing Guide{guidanceType ? `: ${guidanceType}` : ''}</h3>
+            <button onClick={() => { setGuidanceType(null); }} style={{ padding: '4px 10px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#fff', cursor: 'pointer', fontSize: '0.8rem' }}>Close</button>
+          </div>
+          {filingLoading && <div style={{ textAlign: 'center', padding: '16px', color: '#64748b' }}>Emma-i is preparing your filing guide...</div>}
+          {filingGuidance && !filingLoading && (
+            <div>
+              {filingGuidance.deadline && <p style={{ fontSize: '0.85rem', color: '#dc2626', marginBottom: '8px' }}>Deadline: {filingGuidance.deadline}</p>}
+              {filingGuidance.steps?.map((step, i) => (
+                <div key={i} style={{ padding: '10px 14px', background: i % 2 === 0 ? '#f8fafc' : '#fff', borderRadius: '6px', marginBottom: '6px', fontSize: '0.85rem' }}>
+                  <strong>Step {step.step}: {step.title}</strong>
+                  <div style={{ color: '#475569', marginTop: '4px' }}>{step.description}</div>
+                  {step.url && <a href={step.url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontSize: '0.82rem' }}>{step.url}</a>}
+                </div>
+              ))}
+              {filingGuidance.commonMistakes?.length > 0 && (
+                <div style={{ background: '#fef3c7', padding: '10px 14px', borderRadius: '8px', marginTop: '10px', fontSize: '0.83rem' }}>
+                  <strong>Common Mistakes:</strong>
+                  <ul style={{ margin: '4px 0 0', paddingLeft: '18px' }}>
+                    {filingGuidance.commonMistakes.map((m, i) => <li key={i}>{m}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="workflow-stats">
         <div className="stat-chip overdue">{'\u{26A0}'} {WORKFLOWS.filter(w => w.status === 'overdue').length} Overdue</div>
@@ -146,6 +185,9 @@ export default function FilingWorkflows() {
                   <div className="workflow-actions">
                     <button className="btn-primary">Open {wf.portal}</button>
                     <button className="btn-secondary">View Guide</button>
+                    <button className="btn-secondary" style={{ background: '#6366f1', color: '#fff', borderColor: '#6366f1' }} onClick={() => handleAskEmma(wf.name)}>
+                      {'\u{1F9E0}'} Ask Emma-i
+                    </button>
                   </div>
                 </div>
               )}

@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { useAIInsightsStore } from '../stores/aiInsightsStore';
 import './PageStyles.css';
 
 const RISK_SUMMARY = [
@@ -33,12 +35,46 @@ const RISK_COLORS = { high: '#e74c3c', medium: '#f39c12', low: '#2ecc71' };
 export default function RiskAnalytics() {
   const totalPotential = PENALTY_TREND.reduce((s, m) => s + m.potential, 0);
   const totalAvoided = PENALTY_TREND.reduce((s, m) => s + m.avoided, 0);
+  const { riskAnalysis, riskLoading, fetchRiskAnalysis } = useAIInsightsStore();
+
+  useEffect(() => { fetchRiskAnalysis(); }, []);
 
   return (
     <div className="page-container">
       <div className="page-header">
         <h1>{'\u{1F4CA}'} Risk Analytics</h1>
         <p>Comprehensive risk assessment across all South African compliance modules</p>
+      </div>
+
+      {/* AI Risk Analysis Panel */}
+      <div className="section-card" style={{ borderLeft: '4px solid #6366f1', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <h3 style={{ margin: 0, fontSize: '1.05rem' }}>{'\u{1F9E0}'} Emma-i Risk Intelligence</h3>
+          <button onClick={fetchRiskAnalysis} disabled={riskLoading} style={{ padding: '6px 14px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#fff', cursor: 'pointer', fontSize: '0.82rem' }}>
+            {riskLoading ? 'Analyzing...' : 'Re-analyze'}
+          </button>
+        </div>
+        {riskLoading && <div style={{ textAlign: 'center', padding: '16px', color: '#64748b' }}>Emma-i is analyzing your risk profile...</div>}
+        {riskAnalysis && !riskLoading && (
+          <div>
+            {riskAnalysis.overallRisk && (
+              <div style={{ display: 'inline-block', padding: '4px 14px', borderRadius: '16px', fontSize: '0.85rem', fontWeight: 600, marginBottom: '12px',
+                background: riskAnalysis.overallRisk === 'critical' ? '#fef2f2' : riskAnalysis.overallRisk === 'high' ? '#fff7ed' : riskAnalysis.overallRisk === 'medium' ? '#fefce8' : '#f0fdf4',
+                color: riskAnalysis.overallRisk === 'critical' ? '#dc2626' : riskAnalysis.overallRisk === 'high' ? '#ea580c' : riskAnalysis.overallRisk === 'medium' ? '#ca8a04' : '#16a34a',
+              }}>
+                Overall: {riskAnalysis.overallRisk.toUpperCase()} RISK
+              </div>
+            )}
+            {riskAnalysis.recommendation && <p style={{ fontSize: '0.9rem', color: '#334155', margin: '8px 0' }}>{riskAnalysis.recommendation}</p>}
+            {riskAnalysis.topRisks?.map((risk, i) => (
+              <div key={i} style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: '8px', marginTop: '8px', fontSize: '0.85rem' }}>
+                <strong>{risk.title}</strong> <span style={{ color: '#64748b' }}>({risk.module})</span>
+                <div style={{ color: '#475569', marginTop: '4px' }}>{risk.explanation}</div>
+                {risk.mitigation && <div style={{ color: '#2563eb', marginTop: '4px' }}>Mitigation: {risk.mitigation}</div>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="metrics-row">

@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { useAIInsightsStore } from '../stores/aiInsightsStore';
 import './PageStyles.css';
 
 const AUDIT_SECTIONS = [
@@ -61,12 +63,45 @@ export default function AuditReport() {
   const overallScore = Math.round(AUDIT_SECTIONS.reduce((s, a) => s + a.score, 0) / AUDIT_SECTIONS.length);
   const totalFindings = AUDIT_SECTIONS.reduce((s, a) => s + a.findings.length, 0);
   const highFindings = AUDIT_SECTIONS.reduce((s, a) => s + a.findings.filter(f => f.severity === 'high').length, 0);
+  const { auditNarrative, auditLoading, fetchAuditNarrative } = useAIInsightsStore();
+
+  useEffect(() => { fetchAuditNarrative(); }, []);
 
   return (
     <div className="page-container">
       <div className="page-header">
         <h1>{'\u{1F4CB}'} Compliance Audit Report</h1>
         <p>Comprehensive compliance audit for SA SMME {'\u{2014}'} Generated May 2026</p>
+      </div>
+
+      {/* AI Executive Summary */}
+      <div className="section-card" style={{ borderLeft: '4px solid #6366f1', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <h3 style={{ margin: 0 }}>{'\u{1F9E0}'} AI Executive Summary</h3>
+          <button onClick={fetchAuditNarrative} disabled={auditLoading} style={{ padding: '6px 14px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#fff', cursor: 'pointer', fontSize: '0.82rem' }}>
+            {auditLoading ? 'Generating...' : 'Regenerate'}
+          </button>
+        </div>
+        {auditLoading && <div style={{ textAlign: 'center', padding: '16px', color: '#64748b' }}>Emma-i is generating your audit narrative...</div>}
+        {auditNarrative && !auditLoading && (
+          <div>
+            {auditNarrative.overallAssessment && (
+              <span style={{ display: 'inline-block', padding: '3px 12px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 600, marginBottom: '10px',
+                background: auditNarrative.overallAssessment === 'compliant' ? '#dcfce7' : auditNarrative.overallAssessment === 'critical' ? '#fef2f2' : '#fef9c3',
+                color: auditNarrative.overallAssessment === 'compliant' ? '#166534' : auditNarrative.overallAssessment === 'critical' ? '#dc2626' : '#854d0e',
+              }}>{auditNarrative.overallAssessment.replace(/_/g, ' ').toUpperCase()}</span>
+            )}
+            {auditNarrative.executiveSummary && <p style={{ fontSize: '0.9rem', color: '#334155', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{auditNarrative.executiveSummary}</p>}
+            {auditNarrative.priorityActions?.length > 0 && (
+              <div style={{ marginTop: '12px' }}>
+                <strong style={{ fontSize: '0.85rem' }}>Priority Actions:</strong>
+                <ul style={{ margin: '6px 0 0', paddingLeft: '20px', fontSize: '0.85rem', color: '#475569' }}>
+                  {auditNarrative.priorityActions.map((a, i) => <li key={i}>{a}</li>)}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="audit-summary">
