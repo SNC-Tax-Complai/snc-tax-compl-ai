@@ -246,4 +246,4 @@ Developed by SA-iLabs™ — Emma-i™ AI Engine.
 
 ---
 
-**Version**: 2.0.0 | **License**: Proprietary | **Contact**: wernerbotha199@gmail.com
+**Version**: 2.0.0 | **License**: Proprietary | **Contact**: devops@sa-ilabs.co.za / yolisa@snctax.co.za
