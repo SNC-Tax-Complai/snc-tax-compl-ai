@@ -1,124 +1,181 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import api from '../services/api';
 import './PageStyles.css';
 
-const INTEGRATIONS = [
+const GOV_PORTALS = [
   {
     id: 'sars-efiling', name: 'SARS eFiling', icon: '🇿🇦', category: 'Government',
-    description: 'Direct integration with SARS eFiling for tax submissions',
-    status: 'available', filings: ['EMP201', 'VAT201', 'ITR14', 'IRP6', 'EMP501'],
+    description: 'File EMP201, VAT201, ITR14, IRP6, and EMP501 returns via SARS eFiling.',
+    filings: ['EMP201', 'VAT201', 'ITR14', 'IRP6', 'EMP501'],
     url: 'https://www.sarsefiling.co.za',
   },
   {
     id: 'cipc', name: 'CIPC e-Services', icon: '🏛️', category: 'Government',
-    description: 'Company registration and annual return submissions',
-    status: 'available', filings: ['Annual Return', 'CM29', 'CoR Forms'],
+    description: 'Submit company annual returns and registration forms via CIPC.',
+    filings: ['Annual Return', 'CM29', 'CoR Forms'],
     url: 'https://eservices.cipc.co.za',
   },
   {
     id: 'compeasy', name: 'CompEasy (COIDA)', icon: '🛡️', category: 'Government',
-    description: 'Compensation Fund return of earnings and payments',
-    status: 'available', filings: ['Return of Earnings', 'Assessment'],
+    description: 'Submit COIDA return of earnings and compensation fund payments.',
+    filings: ['Return of Earnings', 'Assessment'],
     url: 'https://www.labour.gov.za',
   },
   {
     id: 'uif', name: 'UIF u-Filing', icon: '👷', category: 'Government',
-    description: 'Unemployment Insurance Fund declarations',
-    status: 'available', filings: ['UI-19', 'Monthly declarations'],
+    description: 'Submit UI-19 declarations and monthly unemployment insurance filings.',
+    filings: ['UI-19', 'Monthly declarations'],
     url: 'https://www.ufiling.co.za',
-  },
-  {
-    id: 'xero', name: 'Xero Accounting', icon: '📊', category: 'Accounting',
-    description: 'Cloud accounting integration for automated data sync',
-    status: 'coming_soon', filings: ['Invoices', 'Bank feeds', 'Reports'],
-  },
-  {
-    id: 'sage', name: 'Sage Business Cloud', icon: '📈', category: 'Accounting',
-    description: 'Sage payroll and accounting data integration',
-    status: 'coming_soon', filings: ['Payroll', 'GL', 'Tax packs'],
-  },
-  {
-    id: 'quickbooks', name: 'QuickBooks', icon: '💼', category: 'Accounting',
-    description: 'QuickBooks Online integration for financial data',
-    status: 'coming_soon', filings: ['Invoices', 'Expenses', 'Reports'],
-  },
-  {
-    id: 'whatsapp', name: 'WhatsApp Business', icon: '💬', category: 'Communication',
-    description: 'Receive compliance alerts and reminders via WhatsApp',
-    status: 'connected', filings: ['Alerts', 'Reminders', 'Reports'],
-  },
-  {
-    id: 'email', name: 'Email Notifications', icon: '📧', category: 'Communication',
-    description: 'Automated email alerts for deadlines and updates',
-    status: 'connected', filings: ['Deadline alerts', 'Weekly digest', 'Audit reports'],
-  },
-  {
-    id: 'google-drive', name: 'Google Drive', icon: '☁️', category: 'Storage',
-    description: 'Sync compliance documents to Google Drive',
-    status: 'available', filings: ['Document backup', 'Shared access'],
   },
 ];
 
-const STATUS_MAP = {
-  connected: { label: 'Connected', color: '#2ecc71' },
-  available: { label: 'Available', color: '#3498db' },
-  coming_soon: { label: 'Coming Soon', color: '#95a5a6' },
-};
+const ACCOUNTING_TOOLS = [
+  {
+    id: 'xero', name: 'Xero Accounting', icon: '📊', category: 'Accounting',
+    description: 'Cloud accounting integration for automated data sync. Coming soon.',
+    filings: ['Invoices', 'Bank feeds', 'Reports'],
+  },
+  {
+    id: 'sage', name: 'Sage Business Cloud', icon: '📈', category: 'Accounting',
+    description: 'Sage payroll and accounting data integration. Coming soon.',
+    filings: ['Payroll', 'GL', 'Tax packs'],
+  },
+  {
+    id: 'quickbooks', name: 'QuickBooks', icon: '💼', category: 'Accounting',
+    description: 'QuickBooks Online financial data integration. Coming soon.',
+    filings: ['Invoices', 'Expenses', 'Reports'],
+  },
+];
 
 export default function Integrations() {
   const [filter, setFilter] = useState('all');
-  const categories = ['all', ...new Set(INTEGRATIONS.map(i => i.category))];
-  const filtered = filter === 'all' ? INTEGRATIONS : INTEGRATIONS.filter(i => i.category === filter);
+  const [emailConfigured, setEmailConfigured] = useState(false);
+  const [waConfigured, setWaConfigured] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(true);
+
+  useEffect(() => {
+    api.get('/notifications/status')
+      .then(({ data }) => {
+        setEmailConfigured(data.email?.configured || false);
+        setWaConfigured(data.whatsapp?.configured || false);
+      })
+      .catch(() => {})
+      .finally(() => setStatusLoading(false));
+  }, []);
+
+  const COMM_INTEGRATIONS = [
+    {
+      id: 'whatsapp', name: 'WhatsApp Business', icon: '💬', category: 'Communication',
+      description: 'Receive compliance alerts and deadline reminders via WhatsApp.',
+      filings: ['Deadline alerts', 'Overdue warnings', 'Score updates'],
+      configured: waConfigured,
+      settingsPath: '/whatsapp',
+    },
+    {
+      id: 'email', name: 'Email Notifications', icon: '📧', category: 'Communication',
+      description: 'Automated email alerts for deadlines, score changes, and regulatory updates.',
+      filings: ['Deadline alerts', 'Weekly digest', 'Audit reports'],
+      configured: emailConfigured,
+      settingsPath: '/settings',
+    },
+  ];
+
+  const ALL_INTEGRATIONS = [
+    ...GOV_PORTALS.map((i) => ({ ...i, type: 'gov' })),
+    ...ACCOUNTING_TOOLS.map((i) => ({ ...i, type: 'coming_soon' })),
+    ...COMM_INTEGRATIONS.map((i) => ({ ...i, type: 'comm' })),
+  ];
+
+  const categories = ['all', 'Government', 'Accounting', 'Communication'];
+  const filtered = filter === 'all' ? ALL_INTEGRATIONS : ALL_INTEGRATIONS.filter((i) => i.category === filter);
+
+  const connectedCount = COMM_INTEGRATIONS.filter((i) => i.configured).length;
 
   return (
     <div className="page-container">
       <div className="page-header">
-        <h1>{'\u{1F50C}'} Integrations</h1>
-        <p>Connect Compl-Ai{'™'} with government portals, accounting software, and communication tools</p>
+        <h1>🔌 Integrations</h1>
+        <p>Connect Compl-Ai™ with government portals, accounting software, and communication services</p>
       </div>
 
       <div className="integration-stats">
-        <div className="int-stat">{'\u{2705}'} {INTEGRATIONS.filter(i => i.status === 'connected').length} Connected</div>
-        <div className="int-stat">{'\u{1F517}'} {INTEGRATIONS.filter(i => i.status === 'available').length} Available</div>
-        <div className="int-stat">{'\u{23F3}'} {INTEGRATIONS.filter(i => i.status === 'coming_soon').length} Coming Soon</div>
+        <div className="int-stat">✅ {statusLoading ? '…' : connectedCount} Connected</div>
+        <div className="int-stat">🔗 {GOV_PORTALS.length} Government Portals</div>
+        <div className="int-stat">⏳ {ACCOUNTING_TOOLS.length} Coming Soon</div>
       </div>
 
       <div className="filter-bar">
-        {categories.map(c => (
-          <button key={c} className={`filter-btn ${filter === c ? 'active' : ''}`} onClick={() => setFilter(c)}>
+        {categories.map((c) => (
+          <button
+            key={c}
+            className={`filter-btn ${filter === c ? 'active' : ''}`}
+            onClick={() => setFilter(c)}
+          >
             {c === 'all' ? 'All' : c}
           </button>
         ))}
       </div>
 
       <div className="integrations-grid">
-        {filtered.map(intg => (
-          <div key={intg.id} className={`integration-card ${intg.status}`}>
-            <div className="int-card-header">
-              <span className="int-icon">{intg.icon}</span>
-              <div>
-                <h3>{intg.name}</h3>
-                <span className="int-category">{intg.category}</span>
+        {filtered.map((intg) => {
+          const isGov = intg.type === 'gov';
+          const isComingSoon = intg.type === 'coming_soon';
+          const isComm = intg.type === 'comm';
+          const isConnected = isComm && intg.configured;
+
+          return (
+            <div key={intg.id} className={`integration-card ${isConnected ? 'connected' : isComingSoon ? 'coming_soon' : 'available'}`}>
+              <div className="int-card-header">
+                <span className="int-icon">{intg.icon}</span>
+                <div>
+                  <h3>{intg.name}</h3>
+                  <span className="int-category">{intg.category}</span>
+                </div>
+                <span
+                  className="int-status-dot"
+                  style={{
+                    background: isConnected ? '#2ecc71' : isComingSoon ? '#95a5a6' : '#3498db',
+                  }}
+                >
+                  {isConnected ? 'Connected' : isComingSoon ? 'Coming Soon' : 'Available'}
+                </span>
               </div>
-              <span className="int-status-dot" style={{ background: STATUS_MAP[intg.status].color }}>
-                {STATUS_MAP[intg.status].label}
-              </span>
+
+              <p className="int-desc">{intg.description}</p>
+
+              <div className="int-filings">
+                {intg.filings.map((f, i) => (
+                  <span key={i} className="filing-chip">{f}</span>
+                ))}
+              </div>
+
+              <div className="int-actions">
+                {isConnected ? (
+                  <button className="btn-connected" onClick={() => window.location.hash = intg.settingsPath || ''}>
+                    ✓ Connected — Settings
+                  </button>
+                ) : isComingSoon ? (
+                  <button className="btn-disabled" disabled>Coming Soon</button>
+                ) : isComm ? (
+                  <button className="btn-primary" onClick={() => window.location.hash = intg.settingsPath || ''}>
+                    Configure
+                  </button>
+                ) : (
+                  /* Government portals: open the external portal */
+                  <a href={intg.url} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ textDecoration: 'none', display: 'inline-block' }}>
+                    Open Portal ↗
+                  </a>
+                )}
+
+                {isGov && intg.url && (
+                  <a href={intg.url} target="_blank" rel="noopener noreferrer" className="btn-link">
+                    Visit Portal ↗
+                  </a>
+                )}
+              </div>
             </div>
-            <p className="int-desc">{intg.description}</p>
-            <div className="int-filings">
-              {intg.filings.map((f, i) => <span key={i} className="filing-chip">{f}</span>)}
-            </div>
-            <div className="int-actions">
-              {intg.status === 'connected' ? (
-                <button className="btn-connected">{'✓'} Connected</button>
-              ) : intg.status === 'available' ? (
-                <button className="btn-primary">Connect</button>
-              ) : (
-                <button className="btn-disabled" disabled>Coming Soon</button>
-              )}
-              {intg.url && <a href={intg.url} target="_blank" rel="noopener noreferrer" className="btn-link">Visit Portal {'↗'}</a>}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

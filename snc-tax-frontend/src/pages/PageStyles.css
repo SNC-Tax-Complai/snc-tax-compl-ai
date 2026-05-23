@@ -280,7 +280,9 @@
 }
 .chat-header-bar h3 { margin: 0; font-size: 1rem; }
 .online-indicator { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: #16a34a; }
+.online-indicator.demo { color: #b45309; }
 .online-dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; display: inline-block; }
+.online-dot.demo { background: #b45309; }
 
 .chat-messages {
   flex: 1;

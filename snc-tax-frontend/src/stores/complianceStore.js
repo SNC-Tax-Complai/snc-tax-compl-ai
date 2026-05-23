@@ -17,20 +17,8 @@ export const useComplianceStore = create((set, get) => ({
       set({ dashboardData: data, loading: false });
       return data;
     } catch (error) {
-      // Return fallback data for development
-      const fallback = {
-        complianceScore: 87,
-        complianceTrend: 7,
-        previousScore: 80,
-        pendingFilings: 3,
-        pendingTrend: -15,
-        dueThisMonth: 2,
-        actionRequired: true,
-        allUpToDate: 14,
-        upToDateTrend: 2,
-      };
-      set({ dashboardData: fallback, loading: false, error: error.message });
-      return fallback;
+      set({ dashboardData: null, loading: false, error: error.message });
+      return null;
     }
   },
 

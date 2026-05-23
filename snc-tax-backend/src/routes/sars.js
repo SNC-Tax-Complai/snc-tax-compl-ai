@@ -56,7 +56,7 @@ router.get('/status', (req, res) => {
     configured: sarsService.isConfigured,
     message: sarsService.isConfigured
       ? 'SARS eFiling integration active'
-      : 'SARS credentials not configured - using mock data',
+      : 'SARS eFiling integration not configured. Set SARS_CLIENT_ID and SARS_CLIENT_SECRET in your .env file.',
   });
 });
 

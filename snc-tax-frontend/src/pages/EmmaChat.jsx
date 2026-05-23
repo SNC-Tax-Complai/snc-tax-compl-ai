@@ -104,7 +104,15 @@ export default function EmmaChat() {
         <div className="chat-main">
           <div className="chat-header-bar">
             <h3>{'\u{1F4AC}'} Emma-i{'™'} AI Assistant</h3>
-            <span className="online-indicator"><span className="online-dot" /> Online</span>
+            {providerStatus ? (
+              providerStatus.status === 'active' ? (
+                <span className="online-indicator"><span className="online-dot" /> Live</span>
+              ) : (
+                <span className="online-indicator demo"><span className="online-dot demo" /> Demo Mode</span>
+              )
+            ) : (
+              <span className="online-indicator demo"><span className="online-dot demo" /> Connecting…</span>
+            )}
           </div>
 
           <div className="chat-messages">

@@ -8,19 +8,12 @@ export const getDashboard = async (req, res, next) => {
     const companyId = req.user.companyId || req.user.company_id;
 
     if (!companyId) {
-      // Fallback for development when no company assigned
       return res.json({
-        complianceScore: 87,
-        complianceTrend: 7,
-        previousScore: 80,
-        pendingFilings: 3,
-        pendingTrend: -15,
-        dueThisMonth: 2,
-        actionRequired: true,
-        allUpToDate: 14,
-        upToDateTrend: 2,
-        overdue: 0,
-        total: 17,
+        complianceScore: 0, complianceTrend: 0, previousScore: 0,
+        pendingFilings: 0, pendingTrend: 0, dueThisMonth: 0,
+        actionRequired: false, allUpToDate: 0, upToDateTrend: 0,
+        overdue: 0, total: 0, scoreTrend: [], moduleHealth: {},
+        upcomingDeadlines: [], overdueItems: [], maturityLevel: 1,
       });
     }
 
