@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { readFileSync } from 'fs';
 import authRoutes from './routes/auth.js';
 import complianceRoutes from './routes/compliance.js';
 import companyRoutes from './routes/companies.js';
@@ -49,6 +50,17 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/sars', sarsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/ai-settings', aiSettingsRoutes);
+
+// Version endpoint — used by connected clients to detect new builds
+app.get('/api/version', (req, res) => {
+  try {
+    const versionFile = path.join(distPath, 'version.json');
+    const data = JSON.parse(readFileSync(versionFile, 'utf8'));
+    res.json(data);
+  } catch {
+    res.json({ version: 'unknown', buildTime: null });
+  }
+});
 
 // Health check endpoints
 app.get('/health', async (req, res) => {
