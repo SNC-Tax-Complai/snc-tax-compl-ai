@@ -176,7 +176,9 @@ class ComplianceService {
         cs.completion_date,
         cs.next_due_date,
         cs.notes,
-        cs.assigned_to
+        cs.assigned_to,
+        cs.data_source,
+        cs.source_document_id
       FROM compliance_requirements cr
       LEFT JOIN compliance_statuses cs
         ON cs.requirement_id = cr.id AND cs.company_id = $1
@@ -232,7 +234,7 @@ class ComplianceService {
    * Update compliance status
    */
   async updateStatus(statusId, data, userId) {
-    const { status, notes, completionDate } = data;
+    const { status, notes, completionDate, dataSource, sourceDocumentId } = data;
 
     const updated = await db.oneOrNone(`
       UPDATE compliance_statuses
@@ -240,10 +242,12 @@ class ComplianceService {
         status = COALESCE($2, status),
         notes = COALESCE($3, notes),
         completion_date = COALESCE($4, completion_date),
+        data_source = COALESCE($5, data_source),
+        source_document_id = COALESCE($6::uuid, source_document_id),
         updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
       RETURNING *
-    `, [statusId, status, notes, completionDate]);
+    `, [statusId, status, notes, completionDate, dataSource || null, sourceDocumentId || null]);
 
     if (updated && status === 'completed' && !updated.next_due_date) {
       // Calculate next due date

@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import * as complianceController from '../controllers/complianceController.js';
 import { requireAuth } from '../middleware/auth.js';
+import { resolveAll } from '../services/dataResolutionService.js';
 
 const router = express.Router();
 router.use(requireAuth);
@@ -41,6 +42,18 @@ const upload = multer({
 
 // Static routes MUST come before parameterized routes
 router.get('/dashboard', complianceController.getDashboard);
+
+// POST /api/compliance/resolve-all — run full document→API→non_compliant resolution
+router.post('/resolve-all', async (req, res, next) => {
+  try {
+    const companyId = req.user.companyId || req.user.company_id;
+    if (!companyId) return res.status(400).json({ error: 'No company assigned' });
+    const summary = await resolveAll(companyId);
+    res.json({ success: true, summary });
+  } catch (err) {
+    next(err);
+  }
+});
 router.get('/report/generate', complianceController.generateReport);
 router.get('/requirement/:id', complianceController.getRequirement);
 

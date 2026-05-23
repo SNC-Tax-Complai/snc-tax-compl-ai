@@ -4,11 +4,24 @@ import { useComplianceStore } from '../../stores/complianceStore';
 import toast from 'react-hot-toast';
 import './Compliance.css';
 
+const PROVENANCE = {
+  document:     { icon: '📄', label: 'Document',     cls: 'prov-document' },
+  api:          { icon: '🌐', label: 'API',           cls: 'prov-api' },
+  manual:       { icon: '✏️', label: 'Manual',        cls: 'prov-manual' },
+  non_compliant:{ icon: '⚠️', label: 'Non-Compliant', cls: 'prov-noncompliant' },
+};
+
+function ProvenanceBadge({ dataSource }) {
+  const p = PROVENANCE[dataSource] || PROVENANCE.non_compliant;
+  return <span className={`prov-badge ${p.cls}`}>{p.icon} {p.label}</span>;
+}
+
 export default function ModulePage({ moduleId, moduleConfig }) {
   const navigate = useNavigate();
   const { moduleData, loading, fetchModuleData, updateComplianceStatus, clearModuleData } = useComplianceStore();
   const [selectedRequirement, setSelectedRequirement] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [resolving, setResolving] = useState(false);
 
   useEffect(() => {
     fetchModuleData(moduleId);
@@ -22,6 +35,31 @@ export default function ModulePage({ moduleId, moduleConfig }) {
       fetchModuleData(moduleId);
     } catch (error) {
       toast.error('Failed to update status');
+    }
+  };
+
+  const handleResolve = async () => {
+    setResolving(true);
+    try {
+      const res = await fetch('/api/compliance/resolve-all', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        const { document: docs, api, non_compliant: nc } = data.summary;
+        toast.success(`Resolved: ${docs} from documents, ${api} from API, ${nc} non-compliant`);
+        fetchModuleData(moduleId);
+      } else {
+        toast.error('Resolution failed');
+      }
+    } catch {
+      toast.error('Failed to run resolution');
+    } finally {
+      setResolving(false);
     }
   };
 
@@ -44,6 +82,9 @@ export default function ModulePage({ moduleId, moduleConfig }) {
           <h1>{moduleConfig.name}</h1>
           <p>{moduleConfig.description}</p>
         </div>
+        <button className="resolve-btn" onClick={handleResolve} disabled={resolving} title="Re-scan documents and APIs to update data sources">
+          {resolving ? '⏳ Resolving…' : '🔄 Resolve Sources'}
+        </button>
       </div>
 
       {/* Module Summary */}
@@ -111,6 +152,7 @@ export default function ModulePage({ moduleId, moduleConfig }) {
                 <span className={`status-badge ${req.status || 'pending'}`}>
                   {(req.status || 'pending').replace('_', ' ')}
                 </span>
+                <ProvenanceBadge dataSource={req.data_source} />
                 {req.regulation_code && (
                   <span className="regulation-code">{req.regulation_code}</span>
                 )}
@@ -206,6 +248,10 @@ export default function ModulePage({ moduleId, moduleConfig }) {
                 <strong className={`status-text ${selectedRequirement.status || 'pending'}`}>
                   {(selectedRequirement.status || 'pending').replace('_', ' ')}
                 </strong>
+              </div>
+              <div className="detail-row">
+                <span>Data Source:</span>
+                <ProvenanceBadge dataSource={selectedRequirement.data_source} />
               </div>
             </div>
             {selectedRequirement.notes && (

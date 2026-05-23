@@ -77,7 +77,7 @@ export const getRequirement = async (req, res, next) => {
 export const updateComplianceStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { status, notes, completionDate } = req.body;
+    const { status, notes, completionDate, dataSource, sourceDocumentId } = req.body;
     const userId = req.user.userId;
     const companyId = req.user.companyId || req.user.company_id;
 
@@ -90,7 +90,11 @@ export const updateComplianceStatus = async (req, res, next) => {
       throw new AppError(`Invalid status: ${status}. Must be one of: ${validStatuses.join(', ')}`, 400);
     }
 
-    const updated = await complianceService.updateStatus(id, { status, notes, completionDate }, userId);
+    // When user manually marks something complete without a source, default to 'manual'
+    const resolvedSource = dataSource || (status === 'completed' ? 'manual' : undefined);
+    const updated = await complianceService.updateStatus(
+      id, { status, notes, completionDate, dataSource: resolvedSource, sourceDocumentId }, userId
+    );
 
     if (!updated) {
       throw new AppError('Compliance status not found', 404);

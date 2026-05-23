@@ -4,6 +4,7 @@ import path from 'path';
 import { requireAuth } from '../middleware/auth.js';
 import documentService from '../services/documentService.js';
 import { analyzeForUser } from '../services/ai/aiProviderFactory.js';
+import { autoUpdateFromDocument } from '../services/dataResolutionService.js';
 import db from '../config/database.js';
 
 const router = express.Router();
@@ -135,6 +136,8 @@ router.post('/:id/analyze', async (req, res, next) => {
         result.analysis,
         result.analysis
       );
+      // Phase 5: auto-update compliance statuses backed by this document
+      autoUpdateFromDocument(req.params.id, companyId).catch(() => {});
     }
 
     res.json(result);

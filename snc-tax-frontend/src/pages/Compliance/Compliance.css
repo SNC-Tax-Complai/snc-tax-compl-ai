@@ -480,6 +480,40 @@
   line-height: 1.5;
 }
 
+/* ── Provenance badges ── */
+.prov-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.prov-document     { background: #f0fdf4; color: #15803d; }
+.prov-api          { background: #eff6ff; color: #1d4ed8; }
+.prov-manual       { background: #f5f3ff; color: #6d28d9; }
+.prov-noncompliant { background: #fef9c3; color: #a16207; }
+
+/* ── Resolve button ── */
+.module-header { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.resolve-btn {
+  margin-left: auto;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #374151;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.resolve-btn:hover:not(:disabled) { border-color: #0066cc; color: #0066cc; }
+.resolve-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
 /* Responsive */
 @media (max-width: 768px) {
   .compliance-overview,
