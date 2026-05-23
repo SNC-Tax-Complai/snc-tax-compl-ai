@@ -56,13 +56,18 @@ class SARSService {
     return this.accessToken;
   }
 
+  _notConfigured() {
+    return {
+      configured: false,
+      error: 'SARS eFiling integration requires vendor API credentials (SARS_CLIENT_ID and SARS_CLIENT_SECRET). Contact SARS or visit sarsefiling.co.za to apply for API access.',
+    };
+  }
+
   /**
    * Validate a tax reference number
    */
   async validateTaxReference(taxRef) {
-    if (!this.isConfigured) {
-      return this.getMockTaxValidation(taxRef);
-    }
+    if (!this.isConfigured) return this._notConfigured();
 
     try {
       await this.ensureToken();
@@ -72,7 +77,7 @@ class SARSService {
       return response.data;
     } catch (error) {
       logger.error('SARS tax validation failed', { taxRef, error: error.message });
-      return this.getMockTaxValidation(taxRef);
+      throw error;
     }
   }
 
@@ -80,9 +85,7 @@ class SARSService {
    * Get filing status for a company
    */
   async getFilingStatus(taxRef, filingType) {
-    if (!this.isConfigured) {
-      return this.getMockFilingStatus(taxRef, filingType);
-    }
+    if (!this.isConfigured) return this._notConfigured();
 
     try {
       await this.ensureToken();
@@ -93,7 +96,7 @@ class SARSService {
       return response.data;
     } catch (error) {
       logger.error('SARS filing status failed', { taxRef, filingType, error: error.message });
-      return this.getMockFilingStatus(taxRef, filingType);
+      throw error;
     }
   }
 
@@ -101,9 +104,7 @@ class SARSService {
    * Get Tax Compliance Status (TCS) certificate status
    */
   async getTaxComplianceStatus(taxRef) {
-    if (!this.isConfigured) {
-      return this.getMockTCSStatus(taxRef);
-    }
+    if (!this.isConfigured) return this._notConfigured();
 
     try {
       await this.ensureToken();
@@ -112,7 +113,8 @@ class SARSService {
       });
       return response.data;
     } catch (error) {
-      return this.getMockTCSStatus(taxRef);
+      logger.error('SARS TCS status failed', { taxRef, error: error.message });
+      throw error;
     }
   }
 
@@ -120,9 +122,7 @@ class SARSService {
    * Get outstanding returns for a taxpayer
    */
   async getOutstandingReturns(taxRef) {
-    if (!this.isConfigured) {
-      return this.getMockOutstandingReturns(taxRef);
-    }
+    if (!this.isConfigured) return this._notConfigured();
 
     try {
       await this.ensureToken();
@@ -131,72 +131,9 @@ class SARSService {
       });
       return response.data;
     } catch (error) {
-      return this.getMockOutstandingReturns(taxRef);
+      logger.error('SARS outstanding returns failed', { taxRef, error: error.message });
+      throw error;
     }
-  }
-
-  // ============== Mock responses for development ==============
-
-  getMockTaxValidation(taxRef) {
-    return {
-      mock: true,
-      valid: taxRef && taxRef.length >= 10,
-      taxReference: taxRef,
-      taxpayerName: 'Test Company (Pty) Ltd',
-      registeredForVAT: true,
-      registeredForPAYE: true,
-      status: 'active',
-    };
-  }
-
-  getMockFilingStatus(taxRef, filingType) {
-    return {
-      mock: true,
-      taxReference: taxRef,
-      filingType,
-      submissions: [
-        {
-          period: '2026-04',
-          status: 'submitted',
-          submissionDate: '2026-05-07',
-          assessmentStatus: 'processed',
-        },
-        {
-          period: '2026-03',
-          status: 'submitted',
-          submissionDate: '2026-04-07',
-          assessmentStatus: 'processed',
-        },
-      ],
-      nextDue: {
-        period: '2026-05',
-        dueDate: '2026-06-07',
-        filingType,
-      },
-    };
-  }
-
-  getMockTCSStatus(taxRef) {
-    return {
-      mock: true,
-      taxReference: taxRef,
-      status: 'compliant',
-      pinNumber: 'TCS-MOCK-0001',
-      issueDate: '2026-01-15',
-      expiryDate: '2027-01-15',
-      valid: true,
-    };
-  }
-
-  getMockOutstandingReturns(taxRef) {
-    return {
-      mock: true,
-      taxReference: taxRef,
-      outstanding: [
-        { returnType: 'EMP201', period: '2026-05', dueDate: '2026-06-07' },
-      ],
-      totalOutstanding: 1,
-    };
   }
 }
 

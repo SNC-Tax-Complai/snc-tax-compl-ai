@@ -9,64 +9,149 @@ class ComplianceService {
    * Get dashboard metrics for a company
    */
   async getDashboardMetrics(companyId) {
-    // Get current score
-    const currentScore = await db.oneOrNone(`
-      SELECT score, calculated_at
-      FROM compliance_scores
-      WHERE company_id = $1
-      ORDER BY calculated_at DESC
-      LIMIT 1
-    `, [companyId]);
+    // Run all queries in parallel for performance
+    const [currentScore, previousScore, prevPeriodStats, statusCounts, dueThisMonth,
+           scoreTrendRows, upcomingDeadlines, overdueItems] = await Promise.all([
 
-    // Get previous month score for trend
-    const previousScore = await db.oneOrNone(`
-      SELECT score
-      FROM compliance_scores
-      WHERE company_id = $1
-        AND calculated_at < date_trunc('month', CURRENT_DATE)
-      ORDER BY calculated_at DESC
-      LIMIT 1
-    `, [companyId]);
+      db.oneOrNone(`
+        SELECT score, breakdown, calculated_at
+        FROM compliance_scores WHERE company_id = $1
+        ORDER BY calculated_at DESC LIMIT 1
+      `, [companyId]),
 
-    // Get status counts
-    const statusCounts = await db.one(`
-      SELECT
-        COUNT(*) FILTER (WHERE status = 'pending') AS pending,
-        COUNT(*) FILTER (WHERE status = 'overdue') AS overdue,
-        COUNT(*) FILTER (WHERE status = 'completed') AS completed,
-        COUNT(*) FILTER (WHERE status = 'in_progress') AS in_progress,
-        COUNT(*) FILTER (WHERE status = 'at_risk') AS at_risk,
-        COUNT(*) FILTER (WHERE status != 'not_applicable') AS total
-      FROM compliance_statuses
-      WHERE company_id = $1
-    `, [companyId]);
+      db.oneOrNone(`
+        SELECT score, completed_requirements, pending_requirements
+        FROM compliance_scores WHERE company_id = $1
+          AND calculated_at < date_trunc('month', CURRENT_DATE)
+        ORDER BY calculated_at DESC LIMIT 1
+      `, [companyId]),
 
-    // Get items due this month
-    const dueThisMonth = await db.one(`
-      SELECT COUNT(*) AS count
-      FROM compliance_statuses
-      WHERE company_id = $1
-        AND due_date >= date_trunc('month', CURRENT_DATE)
-        AND due_date < date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'
-        AND status NOT IN ('completed', 'not_applicable')
-    `, [companyId]);
+      // Previous period completed/pending counts for trend
+      db.oneOrNone(`
+        SELECT completed_requirements, pending_requirements
+        FROM compliance_scores WHERE company_id = $1
+          AND calculated_at < date_trunc('month', CURRENT_DATE)
+        ORDER BY calculated_at DESC LIMIT 1
+      `, [companyId]),
+
+      db.one(`
+        SELECT
+          COUNT(*) FILTER (WHERE status = 'pending') AS pending,
+          COUNT(*) FILTER (WHERE status = 'overdue') AS overdue,
+          COUNT(*) FILTER (WHERE status = 'completed') AS completed,
+          COUNT(*) FILTER (WHERE status = 'in_progress') AS in_progress,
+          COUNT(*) FILTER (WHERE status = 'at_risk') AS at_risk,
+          COUNT(*) FILTER (WHERE status != 'not_applicable') AS total
+        FROM compliance_statuses WHERE company_id = $1
+      `, [companyId]),
+
+      db.one(`
+        SELECT COUNT(*) AS count FROM compliance_statuses
+        WHERE company_id = $1
+          AND due_date >= date_trunc('month', CURRENT_DATE)
+          AND due_date < date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'
+          AND status NOT IN ('completed', 'not_applicable')
+      `, [companyId]),
+
+      // Last 6 monthly score records for trend chart
+      db.manyOrNone(`
+        SELECT DISTINCT ON (date_trunc('month', calculated_at))
+          TO_CHAR(calculated_at, 'Mon') AS month,
+          EXTRACT(YEAR FROM calculated_at) AS year,
+          EXTRACT(MONTH FROM calculated_at) AS month_num,
+          ROUND(score::numeric, 1) AS score
+        FROM compliance_scores WHERE company_id = $1
+        ORDER BY date_trunc('month', calculated_at) DESC, calculated_at DESC
+        LIMIT 6
+      `, [companyId]),
+
+      // Next 10 upcoming deadlines
+      db.manyOrNone(`
+        SELECT
+          cr.name, cr.module, cr.regulation_code,
+          cs.due_date,
+          cs.status,
+          (cs.due_date < CURRENT_DATE) AS overdue
+        FROM compliance_statuses cs
+        JOIN compliance_requirements cr ON cr.id = cs.requirement_id
+        WHERE cs.company_id = $1
+          AND cs.status NOT IN ('completed', 'not_applicable')
+        ORDER BY cs.due_date ASC NULLS LAST LIMIT 10
+      `, [companyId]),
+
+      // Overdue items with penalty info
+      db.manyOrNone(`
+        SELECT
+          cr.name, cr.module, cr.regulation_code, cr.penalty_amount,
+          cs.due_date,
+          (CURRENT_DATE - cs.due_date::date) AS days_overdue
+        FROM compliance_statuses cs
+        JOIN compliance_requirements cr ON cr.id = cs.requirement_id
+        WHERE cs.company_id = $1 AND cs.status = 'overdue'
+        ORDER BY cs.due_date ASC LIMIT 5
+      `, [companyId]),
+    ]);
 
     const score = currentScore ? parseFloat(currentScore.score) : 0;
     const prevScore = previousScore ? parseFloat(previousScore.score) : 0;
     const trend = prevScore > 0 ? Math.round(score - prevScore) : 0;
 
+    const curCompleted = parseInt(statusCounts.completed);
+    const curPending = parseInt(statusCounts.pending) + parseInt(statusCounts.in_progress);
+    const prevCompleted = prevPeriodStats ? parseInt(prevPeriodStats.completed_requirements) : 0;
+    const prevPending = prevPeriodStats ? parseInt(prevPeriodStats.pending_requirements) : 0;
+
+    const pendingTrend = prevPending > 0 ? Math.round(((curPending - prevPending) / prevPending) * 100) : 0;
+    const upToDateTrend = prevCompleted > 0 ? Math.round(((curCompleted - prevCompleted) / prevCompleted) * 100) : 0;
+
+    // Build score trend oldest-first for chart
+    const scoreTrend = [...scoreTrendRows].reverse().map(r => ({
+      month: r.month,
+      score: parseFloat(r.score),
+    }));
+
+    // Parse module breakdown from latest score record
+    let moduleHealth = {};
+    if (currentScore?.breakdown) {
+      try {
+        moduleHealth = typeof currentScore.breakdown === 'string'
+          ? JSON.parse(currentScore.breakdown)
+          : currentScore.breakdown;
+      } catch { moduleHealth = {}; }
+    }
+
+    // Maturity level derived from score
+    const maturityLevel = score >= 91 ? 6 : score >= 76 ? 5 : score >= 61 ? 4 : score >= 41 ? 3 : score >= 21 ? 2 : 1;
+
     return {
       complianceScore: score,
       complianceTrend: trend,
       previousScore: prevScore,
-      pendingFilings: parseInt(statusCounts.pending) + parseInt(statusCounts.in_progress),
-      pendingTrend: 0, // TODO: calculate from previous period
+      pendingFilings: curPending,
+      pendingTrend,
       dueThisMonth: parseInt(dueThisMonth.count),
       actionRequired: parseInt(statusCounts.overdue) > 0,
-      allUpToDate: parseInt(statusCounts.completed),
-      upToDateTrend: 0, // TODO: calculate from previous period
+      allUpToDate: curCompleted,
+      upToDateTrend,
       overdue: parseInt(statusCounts.overdue),
       total: parseInt(statusCounts.total),
+      scoreTrend,
+      moduleHealth,
+      maturityLevel,
+      upcomingDeadlines: (upcomingDeadlines || []).map(d => ({
+        name: d.name,
+        module: (d.module || '').toUpperCase(),
+        regulationCode: d.regulation_code,
+        date: d.due_date ? new Date(d.due_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : 'TBD',
+        overdue: d.overdue === true || d.overdue === 'true',
+      })),
+      overdueItems: (overdueItems || []).map(o => ({
+        name: o.name,
+        module: (o.module || '').toUpperCase(),
+        regulationCode: o.regulation_code,
+        penaltyAmount: o.penalty_amount,
+        daysOverdue: parseInt(o.days_overdue) || 0,
+      })),
     };
   }
 
@@ -91,7 +176,9 @@ class ComplianceService {
         cs.completion_date,
         cs.next_due_date,
         cs.notes,
-        cs.assigned_to
+        cs.assigned_to,
+        cs.data_source,
+        cs.source_document_id
       FROM compliance_requirements cr
       LEFT JOIN compliance_statuses cs
         ON cs.requirement_id = cr.id AND cs.company_id = $1
@@ -147,7 +234,7 @@ class ComplianceService {
    * Update compliance status
    */
   async updateStatus(statusId, data, userId) {
-    const { status, notes, completionDate } = data;
+    const { status, notes, completionDate, dataSource, sourceDocumentId } = data;
 
     const updated = await db.oneOrNone(`
       UPDATE compliance_statuses
@@ -155,10 +242,12 @@ class ComplianceService {
         status = COALESCE($2, status),
         notes = COALESCE($3, notes),
         completion_date = COALESCE($4, completion_date),
+        data_source = COALESCE($5, data_source),
+        source_document_id = COALESCE($6::uuid, source_document_id),
         updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
       RETURNING *
-    `, [statusId, status, notes, completionDate]);
+    `, [statusId, status, notes, completionDate, dataSource || null, sourceDocumentId || null]);
 
     if (updated && status === 'completed' && !updated.next_due_date) {
       // Calculate next due date

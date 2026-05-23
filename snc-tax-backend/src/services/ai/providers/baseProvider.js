@@ -5,7 +5,9 @@
 export default class BaseProvider {
   constructor(name, apiKeyEnv) {
     this.name = name;
-    this.apiKey = process.env[apiKeyEnv] || null;
+    this.apiKey = apiKeyEnv ? (process.env[apiKeyEnv] || null) : null;
+    this.systemPromptOverride = null;
+    this.personaName = null;
   }
 
   get isConfigured() {
@@ -45,10 +47,13 @@ export default class BaseProvider {
   }
 
   /**
-   * Build the SA compliance system prompt
+   * Build the SA compliance system prompt (overridable per-user via persona settings)
    */
   getSystemPrompt() {
-    return `You are Emma-i™, an AI compliance assistant specializing in South African SMME compliance.
+    if (this.systemPromptOverride) return this.systemPromptOverride;
+
+    const name = this.personaName || 'Emma-i™';
+    return `You are ${name}, an AI compliance assistant specializing in South African SMME compliance.
 You have expertise in:
 - CIPC (Companies & Intellectual Property Commission) requirements
 - SARS (South African Revenue Service) tax obligations

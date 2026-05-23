@@ -1,8 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import MainLayout from './components/Navigation/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
+import UpdateBanner from './components/UpdateBanner';
 import Dashboard from './pages/Dashboard';
 import CompliancePage from './pages/Compliance';
 import VaultPage from './pages/Vault';
@@ -20,11 +21,13 @@ import WhatsAppAlerts from './pages/WhatsAppAlerts';
 import IndustryIntel from './pages/IndustryIntel';
 import Settings from './pages/Settings';
 import { useAuthStore } from './stores/authStore';
+import { startUpdateCheck } from './services/updateService';
 import './App.css';
 
 function App() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const fetchUser = useAuthStore((state) => state.fetchUser);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
 
   // Recover session on app load
   useEffect(() => {
@@ -33,8 +36,15 @@ function App() {
     }
   }, []);
 
+  // Poll for new builds every 60s
+  useEffect(() => {
+    const stop = startUpdateCheck(() => setUpdateAvailable(true));
+    return stop;
+  }, []);
+
   return (
     <BrowserRouter>
+      {updateAvailable && <UpdateBanner />}
       <Toaster position="top-right" />
       <Routes>
         {/* Public Routes */}

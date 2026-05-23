@@ -144,8 +144,292 @@
   margin: 0;
 }
 
+/* Header row */
+.vault-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* Loading state */
+.vault-loading {
+  text-align: center;
+  padding: 48px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* Document list (table-style rows) */
+.vault-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.doc-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  transition: border-color 0.15s;
+}
+
+.doc-row:hover { border-color: #0066cc; }
+
+.doc-row-icon { font-size: 22px; flex-shrink: 0; }
+
+.doc-row-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.doc-row-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-row-meta {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.doc-row-summary {
+  font-size: 12px;
+  color: #4b5563;
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Extraction status badges */
+.extraction-status {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 12px;
+}
+.status-pending    { background: #f3f4f6; color: #6b7280; }
+.status-processing { background: #eff6ff; color: #2563eb; }
+.status-done       { background: #f0fdf4; color: #16a34a; }
+.status-image      { background: #faf5ff; color: #7c3aed; }
+.status-unsupported{ background: #fff7ed; color: #c2410c; }
+.status-failed     { background: #fef2f2; color: #dc2626; }
+
+/* Row action buttons */
+.doc-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.doc-btn {
+  padding: 5px 10px;
+  font-size: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  color: #374151;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.doc-btn:hover { border-color: #0066cc; color: #0066cc; }
+.doc-btn-delete:hover { border-color: #dc2626; color: #dc2626; }
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.modal-box {
+  background: white;
+  border-radius: 12px;
+  padding: 28px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+
+.modal-box h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 20px;
+}
+
+/* Upload drop zone */
+.drop-zone {
+  border: 2px dashed #d1d5db;
+  border-radius: 10px;
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  margin-bottom: 20px;
+  transition: all 0.2s;
+  color: #6b7280;
+  font-size: 14px;
+}
+.drop-zone:hover, .drop-zone.drag-over { border-color: #0066cc; background: #eff6ff; }
+.drop-zone.has-file { border-color: #16a34a; background: #f0fdf4; }
+.drop-zone p { margin: 8px 0 4px; }
+.drop-hint { font-size: 12px; color: #9ca3af; }
+
+.drop-file-name {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: #1f2937;
+}
+.drop-file-name span:first-child { font-size: 28px; }
+.drop-file-name strong { font-size: 14px; word-break: break-all; }
+.drop-file-name span:last-child { font-size: 12px; color: #6b7280; }
+
+/* Form groups */
+.form-group {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.form-group label { font-size: 13px; font-weight: 500; color: #374151; }
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 9px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1f2937;
+  background: white;
+}
+.form-group input:focus,
+.form-group select:focus { border-color: #0066cc; outline: none; }
+
+/* Modal actions */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn-cancel {
+  padding: 8px 18px;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  color: #374151;
+}
+.btn-cancel:hover { border-color: #9ca3af; }
+
+.btn-danger {
+  padding: 8px 18px;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-danger:hover { background: #b91c1c; }
+
+.confirm-box { max-width: 400px; }
+.confirm-box p { color: #4b5563; font-size: 14px; margin: 0 0 4px; }
+
+/* Analysis modal */
+.analysis-box { max-width: 600px; }
+
+.analysis-loading {
+  text-align: center;
+  padding: 32px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.analysis-error {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  padding: 12px;
+  color: #dc2626;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.analysis-results { display: flex; flex-direction: column; gap: 10px; }
+
+.analysis-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+}
+.analysis-label {
+  width: 140px;
+  flex-shrink: 0;
+  font-weight: 500;
+  color: #6b7280;
+  font-size: 12px;
+  padding-top: 2px;
+}
+
+.risk-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 12px;
+}
+.risk-low    { background: #f0fdf4; color: #16a34a; }
+.risk-medium { background: #fff7ed; color: #c2410c; }
+.risk-high   { background: #fef2f2; color: #dc2626; }
+
+.analysis-summary {
+  background: #f8fafc;
+  border-left: 3px solid #0066cc;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #374151;
+  border-radius: 0 6px 6px 0;
+  margin-top: 4px;
+}
+
+.analysis-recs { margin-top: 8px; font-size: 14px; }
+.analysis-recs ul { margin: 6px 0 0 18px; padding: 0; }
+.analysis-recs li { margin-bottom: 4px; color: #374151; }
+
+.mono { font-family: monospace; font-size: 13px; }
+
 @media (max-width: 768px) {
-  .vault-container {
-    padding: 16px;
-  }
+  .vault-container { padding: 16px; }
+  .doc-row { flex-wrap: wrap; }
+  .doc-row-actions { width: 100%; justify-content: flex-end; }
 }

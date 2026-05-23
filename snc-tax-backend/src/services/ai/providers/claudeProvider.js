@@ -1,5 +1,6 @@
 import axios from 'axios';
 import BaseProvider from './baseProvider.js';
+import { extractContent } from '../../documentParserService.js';
 
 /**
  * Anthropic Claude Provider
@@ -16,31 +17,68 @@ export default class ClaudeProvider extends BaseProvider {
       return { provider: 'claude', status: 'unconfigured', message: 'Set ANTHROPIC_API_KEY to enable' };
     }
 
-    const prompt = `Analyze this document for South African SMME compliance relevance.
-Company context: ${context.companyType || 'Pty Ltd'}, Sector: ${context.sector || 'General'}
-Document: ${file.originalname || file.filename} (${file.mimetype})
+    const filePath = file.path || file.file_path;
+    const mimeType = file.mimetype || file.mime_type;
+    const extracted = filePath ? await extractContent(filePath, mimeType) : { type: 'unsupported' };
 
-Provide analysis as JSON with: documentType, relevantModules[], extractedDates[], riskLevel, recommendations[]`;
+    const systemPrompt = this.getSystemPrompt();
+    const contextStr = `Company: ${context.companyName || 'Unknown'} (${context.companyType || 'Pty Ltd'}), Sector: ${context.sector || 'General'}`;
+
+    let messages;
+
+    if (extracted.type === 'image') {
+      messages = [{
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: { type: 'base64', media_type: extracted.mediaType, data: extracted.content },
+          },
+          {
+            type: 'text',
+            text: `${contextStr}\nAnalyze this document image for South African SMME compliance relevance.\nReturn ONLY valid JSON: { "documentType": string, "relevantModules": string[], "extractedDates": string[], "extractedAmounts": string[], "companyName": string|null, "taxRefNumber": string|null, "riskLevel": "low"|"medium"|"high", "summary": string, "recommendations": string[] }`,
+          },
+        ],
+      }];
+    } else if (extracted.type === 'text' && extracted.content) {
+      const truncated = extracted.content.slice(0, 6000);
+      messages = [{
+        role: 'user',
+        content: `${contextStr}\nAnalyze the following document text for South African SMME compliance relevance.\n\nDOCUMENT TEXT:\n${truncated}\n\nReturn ONLY valid JSON: { "documentType": string, "relevantModules": string[], "extractedDates": string[], "extractedAmounts": string[], "companyName": string|null, "taxRefNumber": string|null, "riskLevel": "low"|"medium"|"high", "summary": string, "recommendations": string[] }`,
+      }];
+    } else {
+      messages = [{
+        role: 'user',
+        content: `${contextStr}\nDocument: ${file.originalname || file.filename} (${mimeType}) — content could not be extracted.\nReturn ONLY valid JSON: { "documentType": string, "relevantModules": string[], "extractedDates": [], "extractedAmounts": [], "companyName": null, "taxRefNumber": null, "riskLevel": "low", "summary": "Document content unavailable for analysis", "recommendations": [] }`,
+      }];
+    }
 
     try {
       const response = await axios.post(`${this.baseUrl}/messages`, {
         model: this.model,
-        max_tokens: 1000,
-        system: this.getSystemPrompt(),
-        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1200,
+        system: systemPrompt,
+        messages,
       }, {
         headers: {
           'x-api-key': this.apiKey,
           'anthropic-version': '2023-06-01',
           'Content-Type': 'application/json',
         },
-        timeout: 60000,
+        timeout: 90000,
       });
 
-      const content = response.data.content[0].text;
-      return { provider: 'claude', status: 'success', analysis: JSON.parse(content) };
+      const raw = response.data.content[0].text;
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      const analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(raw);
+      return {
+        provider: 'claude',
+        status: 'success',
+        analysis,
+        extractedText: extracted.type === 'text' ? extracted.content : null,
+      };
     } catch (error) {
-      return { provider: 'claude', status: 'error', message: error.message };
+      return { provider: 'claude', status: 'error', message: error.response?.data?.error?.message || error.message };
     }
   }
 

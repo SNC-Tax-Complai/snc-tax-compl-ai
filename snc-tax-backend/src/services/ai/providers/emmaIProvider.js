@@ -2,89 +2,159 @@ import axios from 'axios';
 import BaseProvider from './baseProvider.js';
 
 /**
- * Emma-i™ AI Provider (Primary)
- * Custom AI engine developed by SA-iLabs™
+ * Emma-i™ AI Provider
+ * SA-iLabs compliance engine, backed by Anthropic Claude via OpenRouter.
+ * Uses OpenAI-compatible API format — configure with your OpenRouter API key.
  */
 export default class EmmaIProvider extends BaseProvider {
   constructor() {
     super('Emma-i™', 'EMMA_I_API_KEY');
-    this.baseUrl = process.env.EMMA_I_API_URL || 'https://api.emma-i.co.za/v1';
+    this.baseUrl = process.env.EMMA_I_API_URL || 'https://openrouter.ai/api/v1';
+    this.model = process.env.EMMA_I_MODEL || 'anthropic/claude-3-haiku';
+  }
+
+  _headers() {
+    return {
+      'Authorization': `Bearer ${this.apiKey}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:5000',
+      'X-Title': 'SNC-TAX Emma-i™ Compliance Engine',
+    };
   }
 
   async analyzeDocument(file, context) {
-    if (!this.isConfigured) {
-      return this.getMockDocumentAnalysis(file, context);
-    }
+    if (!this.isConfigured) return this.getMockDocumentAnalysis(file, context);
+
+    const prompt = `Analyze this document for South African compliance relevance.
+Company type: ${context.companyType || 'Pty Ltd'}
+Sector: ${context.sector || 'General'}
+Filename: ${file.originalname || file.filename}
+File type: ${file.mimetype}
+
+Identify:
+1. Which SA compliance module(s) this relates to (CIPC, SARS, Labour, OHS, POPIA, B-BBEE, FICA, Municipal, Industry)
+2. Any deadlines or dates found
+3. Risk level (low/medium/high/critical)
+4. Recommended actions
+
+Respond in JSON format only.`;
 
     try {
-      const response = await axios.post(`${this.baseUrl}/analyze`, {
-        file_path: file.path,
-        file_type: file.mimetype,
-        context: {
-          company_type: context.companyType,
-          sector: context.sector,
-          modules: context.modules || [],
-        },
-      }, {
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        timeout: 30000,
-      });
+      const response = await axios.post(`${this.baseUrl}/chat/completions`, {
+        model: this.model,
+        messages: [
+          { role: 'system', content: this.getSystemPrompt() },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.3,
+        max_tokens: 1200,
+      }, { headers: this._headers(), timeout: 60000 });
 
-      return response.data;
+      const content = response.data.choices[0].message.content;
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      return {
+        provider: 'emma-i',
+        status: 'success',
+        analysis: jsonMatch ? JSON.parse(jsonMatch[0]) : { raw: content },
+      };
     } catch (error) {
-      console.error('Emma-i™ analyze error:', error.message);
+      console.error('Emma-i™ analyzeDocument error:', error.message);
       return this.getMockDocumentAnalysis(file, context);
     }
   }
 
   async generateRecommendations(companyData) {
-    if (!this.isConfigured) {
-      return this.getMockRecommendations(companyData);
-    }
+    if (!this.isConfigured) return this.getMockRecommendations(companyData);
+
+    const prompt = `Generate compliance recommendations for this South African company:
+Name: ${companyData.name}
+Type: ${companyData.companyType}
+Sector: ${companyData.sector}
+Employees: ${companyData.employeeCount}
+Turnover: R${companyData.annualTurnover}
+Current compliance score: ${companyData.complianceScore}%
+Overdue items: ${companyData.overdueCount}
+
+Provide 3-5 prioritized recommendations as a JSON array with fields:
+priority (high/medium/low), module, title, description, action, penalty, deadline`;
 
     try {
-      const response = await axios.post(`${this.baseUrl}/recommendations`, {
-        company: companyData,
-        system_prompt: this.getSystemPrompt(),
-      }, {
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        timeout: 30000,
-      });
+      const response = await axios.post(`${this.baseUrl}/chat/completions`, {
+        model: this.model,
+        messages: [
+          { role: 'system', content: this.getSystemPrompt() },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.4,
+        max_tokens: 1500,
+      }, { headers: this._headers(), timeout: 60000 });
 
-      return response.data.recommendations;
+      const content = response.data.choices[0].message.content;
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      return jsonMatch ? JSON.parse(jsonMatch[0]) : this.getMockRecommendations(companyData);
     } catch (error) {
       console.error('Emma-i™ recommendations error:', error.message);
       return this.getMockRecommendations(companyData);
     }
   }
 
-  async classifyRequirement(text) {
-    if (!this.isConfigured) {
-      return this.getMockClassification(text);
+  async chat(messages, retries = 2) {
+    if (!this.isConfigured) return this.getMockChat(messages);
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const response = await axios.post(`${this.baseUrl}/chat/completions`, {
+          model: this.model,
+          messages: [
+            { role: 'system', content: this.getSystemPrompt() },
+            ...messages.map(m => ({ role: m.role, content: m.content })),
+          ],
+          temperature: 0.5,
+          max_tokens: 1500,
+        }, { headers: this._headers(), timeout: 60000 });
+
+        return {
+          provider: 'emma-i',
+          status: 'success',
+          message: response.data.choices[0].message.content,
+        };
+      } catch (error) {
+        const meta = error.response?.data?.error?.metadata;
+        const retryAfter = meta?.retry_after_seconds;
+        if (error.response?.status === 429 && retryAfter && attempt < retries) {
+          await new Promise(r => setTimeout(r, (retryAfter + 1) * 1000));
+          continue;
+        }
+        const msg = meta?.raw || error.response?.data?.error?.message || error.message;
+        return { provider: 'emma-i', status: 'error', message: msg };
+      }
     }
+  }
+
+  async classifyRequirement(text) {
+    if (!this.isConfigured) return this.getMockClassification(text);
 
     try {
-      const response = await axios.post(`${this.baseUrl}/classify`, {
-        text,
-        categories: ['cipc', 'sars', 'labour', 'ohs', 'popia', 'bbbee', 'fica', 'municipal', 'industry', 'tax_engine'],
-      }, {
-        headers: { 'Authorization': `Bearer ${this.apiKey}` },
-        timeout: 15000,
-      });
+      const response = await axios.post(`${this.baseUrl}/chat/completions`, {
+        model: this.model,
+        messages: [
+          { role: 'system', content: 'Classify the following text into one SA compliance module. Respond with JSON only: {"module": "...", "confidence": 0.0, "reasoning": "..."}' },
+          { role: 'user', content: text },
+        ],
+        temperature: 0.2,
+        max_tokens: 200,
+      }, { headers: this._headers(), timeout: 30000 });
 
-      return response.data;
+      const content = response.data.choices[0].message.content;
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      return { provider: 'emma-i', ...(jsonMatch ? JSON.parse(jsonMatch[0]) : { module: 'sars', confidence: 0.5 }) };
     } catch (error) {
       return this.getMockClassification(text);
     }
   }
 
-  // Development fallbacks when API key not configured
+  // ─── Mock fallbacks (used when no API key is configured) ────────────────────
+
   getMockDocumentAnalysis(file, context) {
     return {
       provider: 'emma-i',
@@ -94,11 +164,7 @@ export default class EmmaIProvider extends BaseProvider {
         documentType: 'compliance_document',
         confidence: 0.85,
         relevantModules: ['sars', 'labour'],
-        extractedInfo: {
-          dates: [],
-          amounts: [],
-          references: [],
-        },
+        extractedInfo: { dates: [], amounts: [], references: [] },
         recommendations: [
           'Document appears to be a tax-related filing. Ensure it is submitted before the due date.',
           'Consider uploading this as evidence for your SARS compliance requirements.',
@@ -109,13 +175,13 @@ export default class EmmaIProvider extends BaseProvider {
   }
 
   getMockRecommendations(companyData) {
-    const recommendations = [
+    return [
       {
         id: 1,
         priority: 'high',
         module: 'sars',
         title: 'Submit EMP201 Monthly Return',
-        description: 'Your monthly PAYE/SDL/UIF reconciliation is approaching its due date. Ensure all employee data is captured correctly.',
+        description: 'Your monthly PAYE/SDL/UIF reconciliation is approaching its due date.',
         action: 'Review payroll data and submit via SARS eFiling before the 7th of next month.',
         penalty: 'R10,000 per month of non-compliance',
         deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
@@ -125,7 +191,7 @@ export default class EmmaIProvider extends BaseProvider {
         priority: 'medium',
         module: 'popia',
         title: 'Update PAIA Manual (Section 51)',
-        description: 'Your PAIA manual should be reviewed annually to ensure it reflects current data processing activities.',
+        description: 'Your PAIA manual should be reviewed annually to reflect current data processing activities.',
         action: 'Review and update your Section 51 manual, then publish on your website.',
         penalty: 'Up to R10 million fine',
         deadline: null,
@@ -141,80 +207,35 @@ export default class EmmaIProvider extends BaseProvider {
         deadline: null,
       },
     ];
-
-    return recommendations;
-  }
-
-  async chat(messages) {
-    if (!this.isConfigured) {
-      return this.getMockChat(messages);
-    }
-
-    try {
-      const response = await axios.post(`${this.baseUrl}/chat`, {
-        system_prompt: this.getSystemPrompt(),
-        messages: messages.map(m => ({ role: m.role, content: m.content })),
-      }, {
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        timeout: 60000,
-      });
-
-      return { provider: 'emma-i', status: 'success', message: response.data.message || response.data.content };
-    } catch (error) {
-      console.error('Emma-i™ chat error:', error.message);
-      return this.getMockChat(messages);
-    }
   }
 
   getMockChat(messages) {
     const lastMsg = messages[messages.length - 1]?.content?.toLowerCase() || '';
-
     const responses = {
       emp201: 'EMP201 returns are due by the 7th of each month. You must reconcile PAYE, SDL, and UIF deductions for all employees. Submit via SARS eFiling. Late submissions attract a 10% penalty plus interest.',
-      vat: 'VAT201 returns are due by the 25th of the month following the tax period end. Ensure all input and output VAT is correctly captured. Register for VAT when turnover exceeds R1 million in 12 months.',
-      cipc: 'CIPC Annual Returns are due within 30 business days of your company anniversary date. The filing fee is based on your company turnover. Non-compliance can lead to deregistration.',
-      popia: 'POPIA requires all organisations processing personal information to register with the Information Regulator, appoint an Information Officer, and maintain a PAIA Section 51 Manual. Penalties can reach R10 million.',
-      bbbee: 'B-BBEE verification must be done annually through a SANAS-accredited agency. Your scorecard affects tender eligibility. EMEs (turnover under R10m) automatically qualify for Level 4, or Level 1 if 51%+ black-owned.',
-      coida: 'COIDA registration is mandatory for all employers. Submit your Return of Earnings (W.As.8) annually by 31 March. Assessments are based on your industry class and payroll.',
-      default: 'I\'m Emma-i™, your SA compliance assistant. I can help with SARS tax obligations, CIPC filings, labour law, POPIA data protection, B-BBEE verification, and more. What specific compliance area would you like to explore?',
+      vat: 'VAT201 returns are due by the 25th of the month following the tax period end. Register for VAT when turnover exceeds R1 million in 12 months.',
+      cipc: 'CIPC Annual Returns are due within 30 business days of your company anniversary date. Non-compliance can lead to deregistration.',
+      popia: 'POPIA requires registration with the Information Regulator, appointment of an Information Officer, and a PAIA Section 51 Manual. Penalties can reach R10 million.',
+      bbbee: 'B-BBEE verification must be done annually through a SANAS-accredited agency. EMEs (turnover under R10m) automatically qualify for Level 4, or Level 1 if 51%+ black-owned.',
+      coida: 'COIDA registration is mandatory for all employers. Submit your Return of Earnings (W.As.8) annually by 31 March.',
+      default: 'I\'m Emma-i™, your SA compliance assistant. I can help with SARS tax obligations, CIPC filings, labour law, POPIA data protection, B-BBEE, and more. What specific compliance area would you like to explore?\n\n_Note: Configure your OpenRouter API key in Settings to enable full AI responses._',
     };
 
     let reply = responses.default;
     for (const [key, value] of Object.entries(responses)) {
-      if (key !== 'default' && lastMsg.includes(key)) {
-        reply = value;
-        break;
-      }
+      if (key !== 'default' && lastMsg.includes(key)) { reply = value; break; }
     }
 
     return { provider: 'emma-i', status: 'mock', message: reply };
   }
 
   getMockClassification(text) {
-    const lowerText = text.toLowerCase();
-    let module = 'sars';
-    let confidence = 0.6;
-
-    if (lowerText.includes('tax') || lowerText.includes('vat') || lowerText.includes('sars')) {
-      module = 'sars'; confidence = 0.9;
-    } else if (lowerText.includes('employee') || lowerText.includes('labour') || lowerText.includes('coida')) {
-      module = 'labour'; confidence = 0.85;
-    } else if (lowerText.includes('data') || lowerText.includes('privacy') || lowerText.includes('popia')) {
-      module = 'popia'; confidence = 0.88;
-    } else if (lowerText.includes('safety') || lowerText.includes('health') || lowerText.includes('ohs')) {
-      module = 'ohs'; confidence = 0.87;
-    } else if (lowerText.includes('cipc') || lowerText.includes('director') || lowerText.includes('annual return')) {
-      module = 'cipc'; confidence = 0.9;
-    }
-
-    return {
-      provider: 'emma-i',
-      module,
-      confidence,
-      reasoning: `Classified based on keyword analysis (mock mode - configure EMMA_I_API_KEY for real classification)`,
-    };
+    const lower = text.toLowerCase();
+    if (lower.includes('tax') || lower.includes('vat') || lower.includes('sars')) return { provider: 'emma-i', module: 'sars', confidence: 0.9, reasoning: 'Mock classification' };
+    if (lower.includes('employee') || lower.includes('labour') || lower.includes('coida')) return { provider: 'emma-i', module: 'labour', confidence: 0.85, reasoning: 'Mock classification' };
+    if (lower.includes('data') || lower.includes('privacy') || lower.includes('popia')) return { provider: 'emma-i', module: 'popia', confidence: 0.88, reasoning: 'Mock classification' };
+    if (lower.includes('safety') || lower.includes('ohs')) return { provider: 'emma-i', module: 'ohs', confidence: 0.87, reasoning: 'Mock classification' };
+    if (lower.includes('cipc') || lower.includes('annual return')) return { provider: 'emma-i', module: 'cipc', confidence: 0.9, reasoning: 'Mock classification' };
+    return { provider: 'emma-i', module: 'sars', confidence: 0.6, reasoning: 'Mock classification (configure EMMA_I_API_KEY for real results)' };
   }
 }

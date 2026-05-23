@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { readFileSync } from 'fs';
 import authRoutes from './routes/auth.js';
 import complianceRoutes from './routes/compliance.js';
 import companyRoutes from './routes/companies.js';
@@ -10,6 +11,7 @@ import aiRoutes from './routes/ai.js';
 import sarsRoutes from './routes/sars.js';
 import adminRoutes from './routes/admin.js';
 import aiSettingsRoutes from './routes/aiSettings.js';
+import documentRoutes from './routes/documents.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { healthCheck } from './config/database.js';
@@ -49,6 +51,18 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/sars', sarsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/ai-settings', aiSettingsRoutes);
+app.use('/api/documents', documentRoutes);
+
+// Version endpoint — used by connected clients to detect new builds
+app.get('/api/version', (req, res) => {
+  try {
+    const versionFile = path.join(distPath, 'version.json');
+    const data = JSON.parse(readFileSync(versionFile, 'utf8'));
+    res.json(data);
+  } catch {
+    res.json({ version: 'unknown', buildTime: null });
+  }
+});
 
 // Health check endpoints
 app.get('/health', async (req, res) => {
