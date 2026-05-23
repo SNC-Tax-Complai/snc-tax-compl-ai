@@ -1,0 +1,20 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Frontend (Vite dev server)",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": ["node_modules/vite/bin/vite.js"],
+      "cwd": "snc-tax-frontend",
+      "port": 5173
+    },
+    {
+      "name": "Backend (Express + nodemon)",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": ["node_modules/nodemon/bin/nodemon.js", "src/server.js"],
+      "cwd": "snc-tax-backend",
+      "port": 5000,
+      "autoPort": false
+    }
+  ]
+}
