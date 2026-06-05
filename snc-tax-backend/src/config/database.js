@@ -7,19 +7,22 @@ const pgp = pgPromise();
 
 const cn = {
   host: process.env.DATABASE_HOST || 'localhost',
-  port: process.env.DATABASE_PORT || 5432,
+  port: parseInt(process.env.DATABASE_PORT || '5432'),
   database: process.env.DATABASE_NAME || 'snc_tax_db',
   user: process.env.DATABASE_USER || 'postgres',
   password: process.env.DATABASE_PASSWORD || 'password',
+  // SSL support for managed databases (e.g. DigitalOcean)
+  ...(process.env.DATABASE_SSL === 'true' && {
+    ssl: { rejectUnauthorized: false }
+  }),
 };
 
 // Connection pool configuration
 const db = pgp({
   ...cn,
-  // Connection pool settings
-  max: 30, // max pool size
-  idleTimeoutMillis: 30000, // close idle clients after 30s
-  connectionTimeoutMillis: 2000, // return an error after 2s if connection could not be established
+  max: 30,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
 });
 
 // Test connection on startup
@@ -50,3 +53,4 @@ export const closeConnection = async () => {
 };
 
 export default db;
+
