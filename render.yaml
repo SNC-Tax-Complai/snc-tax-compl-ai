@@ -1,5 +1,5 @@
 services:
-  # ── Backend API — always live (starter plan, Frankfurt) ─────────────────────
+  # ── Backend API — always live (starter = no sleep) ───────────────────────
   - type: web
     name: snc-compl-ai-backend
     runtime: docker
@@ -13,20 +13,16 @@ services:
         value: production
       - key: PORT
         value: "5000"
-      # ── Database: set via Render dashboard or use DATABASE_URL ──────────────
       - key: DATABASE_URL
-        sync: false      # paste: postgresql://doadmin:PASS@HOST:25060/defaultdb?sslmode=require
+        sync: false
       - key: DATABASE_SSL
         value: "true"
-      # ── Auth ─────────────────────────────────────────────────────────────────
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 24h
-      # ── CORS: allow all origins (tighten after custom domain is set) ─────────
       - key: CORS_ORIGIN
         value: "*"
-      # ── Integrations (mock/stub until wired up) ────────────────────────────
       - key: SARS_MOCK_MODE
         value: "true"
       - key: AI_PROVIDER_DEFAULT
@@ -34,13 +30,13 @@ services:
       - key: LOG_LEVEL
         value: info
 
-  # ── Frontend Static Site — free tier, always live ───────────────────────────
+  # ── Frontend — static site, always live ──────────────────────────────────
   - type: web
     name: snc-compl-ai-frontend
     runtime: static
-    buildCommand: npm ci && npm run build
-    staticPublishPath: ./dist
-    rootDir: snc-tax-frontend
+    # No rootDir — use explicit cd so paths are unambiguous
+    buildCommand: cd snc-tax-frontend && npm install && npm run build
+    staticPublishPath: snc-tax-frontend/dist
     plan: free
     region: frankfurt
     pullRequestPreviewsEnabled: false
@@ -48,10 +44,8 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
-    buildFilter:
-      paths:
-        - snc-tax-frontend/**
     envVars:
-      # Points frontend axios client to the backend service
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
       - key: VITE_API_URL
         value: https://snc-compl-ai-backend.onrender.com/api
