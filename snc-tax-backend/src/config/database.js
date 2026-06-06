@@ -5,31 +5,38 @@ dotenv.config();
 
 const pgp = pgPromise();
 
-const cn = {
-  host: process.env.DATABASE_HOST || 'localhost',
-  port: parseInt(process.env.DATABASE_PORT || '5432'),
-  database: process.env.DATABASE_NAME || 'snc_tax_db',
-  user: process.env.DATABASE_USER || 'postgres',
-  password: process.env.DATABASE_PASSWORD || 'password',
-  // SSL support for managed databases (e.g. DigitalOcean)
-  ...(process.env.DATABASE_SSL === 'true' && {
-    ssl: { rejectUnauthorized: false }
-  }),
-};
+// Support DATABASE_URL (Render, Heroku) or individual params (DO, custom)
+let connectionConfig;
 
-// Connection pool configuration
+if (process.env.DATABASE_URL) {
+  connectionConfig = {
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  };
+} else {
+  connectionConfig = {
+    host: process.env.DATABASE_HOST || 'localhost',
+    port: parseInt(process.env.DATABASE_PORT || '5432'),
+    database: process.env.DATABASE_NAME || 'snc_tax_db',
+    user: process.env.DATABASE_USER || 'postgres',
+    password: process.env.DATABASE_PASSWORD || 'password',
+    ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  };
+}
+
+// Pool + connection configuration
 const db = pgp({
-  ...cn,
-  max: 30,
+  ...connectionConfig,
+  max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 10000, // 10s for managed remote DBs
 });
 
 // Test connection on startup
 export const testConnection = async () => {
   try {
     const result = await db.one('SELECT NOW()');
-    console.log('✓ Database connected successfully at:', result.now);
+    console.log('✓ Database connected at:', result.now);
     return true;
   } catch (error) {
     console.error('✗ Database connection failed:', error.message);
@@ -53,4 +60,3 @@ export const closeConnection = async () => {
 };
 
 export default db;
-
