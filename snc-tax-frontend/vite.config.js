@@ -6,13 +6,16 @@ import { join } from 'path';
 const BUILD_VERSION = Date.now().toString();
 const BUILD_TIME = new Date().toISOString();
 
-// Plugin: write dist/version.json so the backend can serve it
 function versionJsonPlugin() {
   return {
     name: 'version-json',
     closeBundle() {
-      const version = { version: BUILD_VERSION, buildTime: BUILD_TIME };
-      writeFileSync(join('dist', 'version.json'), JSON.stringify(version));
+      try {
+        const version = { version: BUILD_VERSION, buildTime: BUILD_TIME };
+        writeFileSync(join('dist', 'version.json'), JSON.stringify(version));
+      } catch (e) {
+        // non-fatal: version.json is optional
+      }
     },
   };
 }
@@ -35,7 +38,15 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    minify: 'terser',
+    minify: 'esbuild',  // esbuild is built into Vite — no extra package needed
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          charts: ['recharts'],
+        },
+      },
+    },
   },
   test: {
     globals: true,
