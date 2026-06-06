@@ -1,0 +1,64 @@
+services:
+  # ── Backend API ────────────────────────────────────────────────────────────
+  - type: web
+    name: snc-compl-ai-backend
+    runtime: docker
+    dockerfilePath: ./snc-tax-backend/Dockerfile
+    dockerContext: ./snc-tax-backend
+    plan: starter
+    region: frankfurt
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "5000"
+      - key: DATABASE_HOST
+        sync: false   # set in Render dashboard
+      - key: DATABASE_PORT
+        sync: false
+      - key: DATABASE_NAME
+        sync: false
+      - key: DATABASE_USER
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+      - key: DATABASE_SSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true   # Render generates a secure random value
+      - key: JWT_EXPIRES_IN
+        value: 24h
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: SARS_MOCK_MODE
+        value: "true"
+      - key: AI_PROVIDER_DEFAULT
+        value: mock
+      - key: LOG_LEVEL
+        value: info
+      - key: FRONTEND_URL
+        fromService:
+          name: snc-compl-ai-frontend
+          type: web
+          property: host
+
+  # ── Frontend Static Site ───────────────────────────────────────────────────
+  - type: web
+    name: snc-compl-ai-frontend
+    runtime: static
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    rootDir: snc-tax-frontend
+    plan: free
+    region: frankfurt
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://snc-compl-ai-backend.onrender.com/api/:splat
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: https://snc-compl-ai-backend.onrender.com/api
