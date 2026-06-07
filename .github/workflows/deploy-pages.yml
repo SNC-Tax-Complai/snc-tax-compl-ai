@@ -1,0 +1,66 @@
+name: Deploy Frontend → GitHub Pages
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'snc-tax-frontend/**'
+      - '.github/workflows/deploy-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Vite App
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: snc-tax-frontend/package-lock.json
+
+      - name: Install dependencies (include devDeps)
+        working-directory: snc-tax-frontend
+        run: npm install
+        env:
+          NODE_ENV: development
+
+      - name: Build
+        working-directory: snc-tax-frontend
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://snc-compl-ai-backend.up.railway.app/api' }}
+          NODE_ENV: production
+
+      - name: Inject SPA redirect script into index.html
+        working-directory: snc-tax-frontend/dist
+        run: |
+          sed -i 's|</head>|<script>(function(l){if(l.search[1]==="/"){var d=l.search.slice(1).split("\&").map(function(s){return s.replace(/~and~/g,"\&")}).join("?");window.history.replaceState(null,null,d+l.hash)}}(window.location))</script></head>|' index.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: snc-tax-frontend/dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deploy
+        uses: actions/deploy-pages@v4
