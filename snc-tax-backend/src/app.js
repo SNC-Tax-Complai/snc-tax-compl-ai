@@ -76,12 +76,25 @@ app.get('/health', async (req, res) => {
   });
 });
 
-// Serve frontend build (for tunnel/production mode)
+// Serve frontend build when co-located (Docker, local dev)
+// Safe: no-ops cleanly in API-only deployments (Vercel, Railway)
+import { existsSync } from 'fs';
 const distPath = path.join(__dirname, '../../snc-tax-frontend/dist');
-app.use(express.static(distPath));
+const hasFrontend = existsSync(distPath);
+if (hasFrontend) app.use(express.static(distPath));
+
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api') || req.path === '/health') return next();
-  res.sendFile(path.join(distPath, 'index.html'));
+  const indexFile = path.join(distPath, 'index.html');
+  if (hasFrontend && existsSync(indexFile)) {
+    res.sendFile(indexFile);
+  } else {
+    // API-only mode — frontend is hosted separately
+    res.status(404).json({
+      error: 'Frontend not hosted here',
+      frontend: process.env.FRONTEND_URL || 'https://compl-ai.sa-ilas.co.za'
+    });
+  }
 });
 
 // Error handler (must be last)
