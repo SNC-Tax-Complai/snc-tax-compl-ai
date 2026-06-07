@@ -43,7 +43,7 @@ function App() {
   }, []);
 
   return (
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
+    <BrowserRouter>
       {updateAvailable && <UpdateBanner />}
       <Toaster position="top-right" />
       <Routes>
