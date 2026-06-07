@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import authRoutes from './routes/auth.js';
 import complianceRoutes from './routes/compliance.js';
 import companyRoutes from './routes/companies.js';
@@ -78,7 +78,6 @@ app.get('/health', async (req, res) => {
 
 // Serve frontend build when co-located (Docker, local dev)
 // Safe: no-ops cleanly in API-only deployments (Vercel, Railway)
-import { existsSync } from 'fs';
 const distPath = path.join(__dirname, '../../snc-tax-frontend/dist');
 const hasFrontend = existsSync(distPath);
 if (hasFrontend) app.use(express.static(distPath));
