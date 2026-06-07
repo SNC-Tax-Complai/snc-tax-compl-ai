@@ -1,34 +1,48 @@
-// Vercel Serverless Entry Point — SNC-Compl-Ai™ Backend
-// All HTTP requests are routed here via vercel.json rewrites.
-import app from '../src/app.js';
-import { testConnection } from '../src/config/database.js';
-import runMigrations from '../src/utils/runMigrations.js';
+// Vercel Serverless — SNC-Compl-Ai™ Backend
+// Self-contained handler: avoids complex import chain on cold start.
+// Lazy-loads the full Express app only when needed.
 
-let initialized = false;
+let app = null;
 
-// Lazy initialization: runs once on cold start.
-// Handles DB connection + migrations before the first request is served.
-const init = async () => {
-  if (initialized) return;
-  initialized = true;
-  try {
-    const connected = await testConnection();
-    if (connected) {
-      console.log('✓ DB connected — running migrations...');
-      await runMigrations();
-      console.log('✓ Migrations complete');
-    } else {
-      console.warn('⚠ DB not reachable — running in degraded mode');
+const getApp = async () => {
+  if (!app) {
+    const mod = await import('../src/app.js');
+    app = mod.default;
+    // Run migrations once on cold start
+    try {
+      const db = await import('../src/config/database.js');
+      const mig = await import('../src/utils/runMigrations.js');
+      const connected = await db.testConnection();
+      if (connected) await mig.default();
+    } catch (e) {
+      console.error('Init error (non-fatal):', e.message);
     }
-  } catch (err) {
-    // Non-fatal: server still responds even if migrations fail
-    console.error('Init error (non-fatal):', err.message);
   }
+  return app;
 };
 
-// Vercel calls this for every request.
-// Express app is used as a request handler — this is the standard pattern.
 export default async (req, res) => {
-  await init();
-  app(req, res);
+  // Inline health check — always responds even if Express fails to load
+  if (req.url === '/health' || req.url === '/api/health') {
+    let dbOk = false;
+    try {
+      const db = await import('../src/config/database.js');
+      dbOk = await db.healthCheck();
+    } catch (e) {}
+    return res.json({
+      status: dbOk ? 'ok' : 'degraded',
+      timestamp: new Date().toISOString(),
+      database: dbOk ? 'connected' : 'disconnected',
+      version: '2.1.0'
+    });
+  }
+
+  // All other routes — load the full Express app
+  try {
+    const expressApp = await getApp();
+    return expressApp(req, res);
+  } catch (err) {
+    console.error('Handler error:', err.message);
+    return res.status(500).json({ error: 'Server initializing', retry: true });
+  }
 };
