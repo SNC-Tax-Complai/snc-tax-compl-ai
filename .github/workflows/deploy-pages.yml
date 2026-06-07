@@ -30,7 +30,7 @@ jobs:
           cache: npm
           cache-dependency-path: snc-tax-frontend/package-lock.json
 
-      - name: Install dependencies (include devDeps)
+      - name: Install dependencies
         working-directory: snc-tax-frontend
         run: npm install
         env:
@@ -40,13 +40,9 @@ jobs:
         working-directory: snc-tax-frontend
         run: npm run build
         env:
-          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://snc-compl-ai-backend.up.railway.app/api' }}
+          # Backend API — Vercel deployment (rename Vercel project to snc-compl-ai-backend)
+          VITE_API_URL: https://snc-compl-ai-backend.vercel.app/api
           NODE_ENV: production
-
-      - name: Inject SPA redirect script into index.html
-        working-directory: snc-tax-frontend/dist
-        run: |
-          sed -i 's|</head>|<script>(function(l){if(l.search[1]==="/"){var d=l.search.slice(1).split("\&").map(function(s){return s.replace(/~and~/g,"\&")}).join("?");window.history.replaceState(null,null,d+l.hash)}}(window.location))</script></head>|' index.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
