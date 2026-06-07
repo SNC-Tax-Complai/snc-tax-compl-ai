@@ -6,10 +6,6 @@ import { join } from 'path';
 const BUILD_VERSION = Date.now().toString();
 const BUILD_TIME = new Date().toISOString();
 
-// Base path: /snc-tax-compl-ai/ for GitHub Pages, / for custom domain
-// Override with VITE_BASE_URL env var when custom domain is active
-const base = process.env.VITE_BASE_URL || '/snc-tax-compl-ai/';
-
 function versionJsonPlugin() {
   return {
     name: 'version-json',
@@ -23,7 +19,7 @@ function versionJsonPlugin() {
 }
 
 export default defineConfig({
-  base,
+  base: '/',  // Root — GitHub Pages custom domain serves from /
   plugins: [react(), versionJsonPlugin()],
   define: {
     __BUILD_VERSION__: JSON.stringify(BUILD_VERSION),
