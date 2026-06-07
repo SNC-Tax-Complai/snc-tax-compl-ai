@@ -1,6 +1,6 @@
 const MODEL_CATALOG = {
   providers: [
-    // ─── OpenRouter ────────────────────────────────────────────────────────────
+    // ─── OpenRouter ───────────────────────────────────────────────────────────
     {
       id: 'openrouter',
       name: 'OpenRouter',
@@ -113,7 +113,7 @@ const MODEL_CATALOG = {
       ],
     },
 
-    // ─── OpenAI Direct ─────────────────────────────────────────────────────────
+    // ─── OpenAI Direct ──────────────────────────────────────────────────────────
     {
       id: 'openai',
       name: 'OpenAI',
@@ -153,7 +153,7 @@ const MODEL_CATALOG = {
       ],
     },
 
-    // ─── Anthropic Claude Direct ───────────────────────────────────────────────
+    // ─── Anthropic Claude Direct ─────────────────────────────────────────────────────
     {
       id: 'claude',
       name: 'Anthropic Claude',
@@ -186,7 +186,7 @@ const MODEL_CATALOG = {
       ],
     },
 
-    // ─── Google Gemini Direct ──────────────────────────────────────────────────
+    // ─── Google Gemini Direct ──────────────────────────────────────────────────────
     {
       id: 'gemini',
       name: 'Google Gemini',
@@ -254,7 +254,54 @@ const MODEL_CATALOG = {
       ],
     },
 
-    // ─── Custom / Local Model ──────────────────────────────────────────────────
+    // ─── Ollama (Local) ─────────────────────────────────────────────────────────────
+    {
+      id: 'ollama',
+      name: 'Ollama (Local)',
+      tier: 'free',
+      apiBase: null,
+      keyEnvVar: null,
+      description: 'Run open-weight models locally using Ollama. No API key or cloud required. Set OLLAMA_BASE_URL (default: http://localhost:11434) and OLLAMA_MODEL in your environment.',
+      models: [
+        {
+          id: 'gemma4:12b',
+          name: 'Gemma 4 12B (Default)',
+          tier: 'free',
+          contextWindow: 32768,
+          description: 'Google Gemma 4 12B via Ollama — fast, capable local model. Pull: ollama pull gemma4:12b',
+        },
+        {
+          id: 'gemma3:12b',
+          name: 'Gemma 3 12B',
+          tier: 'free',
+          contextWindow: 32768,
+          description: 'Google Gemma 3 12B via Ollama — stable, widely used. Pull: ollama pull gemma3:12b',
+        },
+        {
+          id: 'llama3.3:70b',
+          name: 'Llama 3.3 70B',
+          tier: 'free',
+          contextWindow: 32768,
+          description: 'Meta Llama 3.3 70B via Ollama — high quality, requires significant VRAM.',
+        },
+        {
+          id: 'mistral:7b',
+          name: 'Mistral 7B',
+          tier: 'free',
+          contextWindow: 32768,
+          description: 'Mistral 7B via Ollama — lightweight and fast for quick compliance queries.',
+        },
+        {
+          id: 'deepseek-r1:14b',
+          name: 'DeepSeek R1 14B',
+          tier: 'free',
+          contextWindow: 32768,
+          description: 'DeepSeek R1 14B via Ollama — reasoning model for complex compliance analysis.',
+        },
+      ],
+    },
+
+    // ─── Custom / Local Model ────────────────────────────────────────────────────────
     {
       id: 'custom',
       name: 'Custom / Local Model',
