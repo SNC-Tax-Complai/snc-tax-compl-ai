@@ -6,21 +6,24 @@ import { join } from 'path';
 const BUILD_VERSION = Date.now().toString();
 const BUILD_TIME = new Date().toISOString();
 
+// Base path: /snc-tax-compl-ai/ for GitHub Pages, / for custom domain
+// Override with VITE_BASE_URL env var when custom domain is active
+const base = process.env.VITE_BASE_URL || '/snc-tax-compl-ai/';
+
 function versionJsonPlugin() {
   return {
     name: 'version-json',
     closeBundle() {
       try {
-        const version = { version: BUILD_VERSION, buildTime: BUILD_TIME };
-        writeFileSync(join('dist', 'version.json'), JSON.stringify(version));
-      } catch (e) {
-        // non-fatal: version.json is optional
-      }
+        writeFileSync(join('dist', 'version.json'),
+          JSON.stringify({ version: BUILD_VERSION, buildTime: BUILD_TIME }));
+      } catch (e) { /* non-fatal */ }
     },
   };
 }
 
 export default defineConfig({
+  base,
   plugins: [react(), versionJsonPlugin()],
   define: {
     __BUILD_VERSION__: JSON.stringify(BUILD_VERSION),
@@ -29,16 +32,13 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-      },
+      '/api': { target: 'http://localhost:5000', changeOrigin: true },
     },
   },
   build: {
     outDir: 'dist',
     sourcemap: false,
-    minify: 'esbuild',  // esbuild is built into Vite — no extra package needed
+    minify: 'esbuild',
     rollupOptions: {
       output: {
         manualChunks: {
