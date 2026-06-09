@@ -19,7 +19,7 @@ function versionJsonPlugin() {
 }
 
 export default defineConfig({
-  base: '/',  // Root — GitHub Pages custom domain serves from /
+  base: '/snc-tax-compl-ai/',  // Root — GitHub Pages custom domain serves from /
   plugins: [react(), versionJsonPlugin()],
   define: {
     __BUILD_VERSION__: JSON.stringify(BUILD_VERSION),
