@@ -1,5 +1,6 @@
-// SNC-Compl-Ai™ Runtime Configuration
-// ➡️ Update apiUrl below to change backend without rebuilding the frontend.
+// Compl-Ai™ SA — Runtime API config
+// Update apiUrl here to switch backend WITHOUT rebuilding the frontend.
+// This file is served as a static asset and loaded before React boots.
 window.COMPL_AI_CONFIG = {
-  apiUrl: "http://164.90.201.58:5000/api"
+  apiUrl: "https://snc-compl-ai-backend.vercel.app/api"
 };
