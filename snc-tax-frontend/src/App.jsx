@@ -43,7 +43,7 @@ function App() {
   }, []);
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/snc-tax-compl-ai">
       {updateAvailable && <UpdateBanner />}
       <Toaster position="top-right" />
       <Routes>
