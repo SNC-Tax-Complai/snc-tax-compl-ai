@@ -1,10 +1,23 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<title>Compl-Ai™ SA</title>
-<script>
-  var l = window.location;
-  l.replace(l.protocol+'//'+ l.hostname+(l.port?':'+l.port:'')+
-    l.pathname.split('/').slice(0,1).join('/')+'/?p='+
-    encodeURIComponent(l.pathname.slice(1))+
-    (l.search?'&q='+encodeURIComponent(l.search.slice(1)):'')+l.hash);
-</script></head></html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Compl-Ai™ SA</title>
+  <script>
+    // GitHub Pages SPA routing fallback
+    // Redirects /snc-tax-compl-ai/login → /#/login style or preserves path
+    var seg = 1; // number of path segments in the repo name
+    var l = window.location;
+    var path = l.pathname.slice(1).split('/').slice(seg).join('/');
+    var query = l.search.slice(1);
+    var hash  = l.hash;
+    var redirect = l.protocol + '//' + l.hostname
+      + (l.port ? ':' + l.port : '')
+      + l.pathname.split('/').slice(0, 1 + seg).join('/')
+      + '/?p=/' + path + (query ? '&q=' + query : '')
+      + hash;
+    window.location.replace(redirect);
+  </script>
+</head>
+<body>Redirecting...</body>
+</html>
