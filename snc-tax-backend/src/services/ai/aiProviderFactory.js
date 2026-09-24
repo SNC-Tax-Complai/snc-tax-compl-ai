@@ -4,6 +4,7 @@ import ClaudeProvider from './providers/claudeProvider.js';
 import GeminiProvider from './providers/geminiProvider.js';
 import OpenRouterProvider from './providers/openRouterProvider.js';
 import CustomProvider from './providers/customProvider.js';
+import OllamaProvider from './providers/ollamaProvider.js';
 import db from '../../config/database.js';
 
 class AIProviderFactory {
@@ -28,6 +29,7 @@ class AIProviderFactory {
       case 'claude':    provider = new ClaudeProvider(); break;
       case 'gemini':    provider = new GeminiProvider(); break;
       case 'openrouter': provider = new OpenRouterProvider(); break;
+      case 'ollama':    provider = new OllamaProvider(overrides); break;
       case 'custom':    provider = new CustomProvider(overrides); break;
       default:          throw new Error(`Unknown AI provider: ${providerId}`);
     }
@@ -50,6 +52,7 @@ class AIProviderFactory {
       { id: 'claude',     name: 'Anthropic Claude',   status: process.env.ANTHROPIC_API_KEY ? 'active' : 'unconfigured',      isDefault: this.defaultProvider === 'claude' },
       { id: 'gemini',     name: 'Google Gemini',      status: process.env.GOOGLE_AI_API_KEY ? 'active' : 'unconfigured',      isDefault: this.defaultProvider === 'gemini' },
       { id: 'openrouter', name: 'OpenRouter',         status: process.env.OPENROUTER_API_KEY ? 'active' : 'unconfigured',     isDefault: this.defaultProvider === 'openrouter' },
+      { id: 'ollama',     name: 'Ollama (Local)',     status: 'local',                                                        isDefault: this.defaultProvider === 'ollama' },
       { id: 'custom',     name: 'Custom / Local',     status: 'user-configured',                                              isDefault: this.defaultProvider === 'custom' },
     ];
   }
@@ -92,7 +95,7 @@ export async function resolveProviderForUser(userId, overrideProviderId) {
       personaName: prefs?.persona_name || null,
     };
 
-    if (config && (config.api_key_encrypted || providerId === 'custom')) {
+    if (config && (config.api_key_encrypted || providerId === 'custom' || providerId === 'ollama')) {
       return factory.createProvider(providerId, {
         ...overrides,
         apiKey: config.api_key_encrypted,
